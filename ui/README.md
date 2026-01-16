@@ -17,6 +17,28 @@ Start-Process -FilePath "ui\\index.html"
 - Toggle "Open in new tab" if you want the target opened in a new tab.
 - Click "Search" — you'll be taken to `https://processchecker.com/file.php?start=<first_letter>`.
 
+Server (recommended)
+
+You can run a tiny Node server to serve the UI and handle redirects (this avoids changing your browser's URL manually):
+
+1. Install dependencies:
+
+```powershell
+npm install
+```
+
+2. Start the server:
+
+```powershell
+npm start
+```
+
+3. Open the UI in your browser:
+
+http://localhost:3000
+
+Now the form will send `GET /search?process=<name>` to the server which will redirect you to the appropriate `processchecker.com` page.
+
 Notes
 
 - This UI only navigates to the start page for the first letter. To automatically search across pages and confirm if the process exists, use the Playwright test at `tests/process-checker.spec.ts`. You can run it via `npx playwright test tests/process-checker.spec.ts` and set `PROCESS_NAME`/`PROCESS_FIRST_LETTER` environment variables if desired.

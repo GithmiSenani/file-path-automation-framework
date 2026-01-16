@@ -5,30 +5,44 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Process Checker UI</title>
   <style>
-    body { font-family: system-ui, -apple-system, Roboto, "Segoe UI", Arial; padding: 2rem; max-width: 640px; margin: auto; }
-    label { display: block; margin-bottom: 1rem; }
-    input[type="text"] { width: 100%; padding: .5rem; font-size: 1rem; }
-    button { padding: .6rem 1rem; font-size: 1rem; }
-    .note { color: #555; margin-top: 1rem; }
+    :root{
+      --bg1: #ff9a9e;
+      --bg2: #fad0c4;
+      --accent: #6a11cb;
+      --accent2: #2575fc;
+      --muted: #444d56;
+    }
+    html,body{height:100%;}
+    body { font-family: system-ui, -apple-system, Roboto, "Segoe UI", Arial; padding: 2rem; max-width: 720px; margin: 40px auto; background: linear-gradient(135deg,var(--bg1),var(--bg2)); border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,.08); }
+    h1{ color: white; text-shadow:0 2px 8px rgba(0,0,0,.18);}
+    label { display: block; margin-bottom: 1rem; color: #0b1320; font-weight:600; }
+    input[type="text"] { width: 100%; padding: .75rem; font-size: 1rem; border-radius:8px; border: none; box-shadow: inset 0 -2px 8px rgba(0,0,0,.06); }
+    button { padding: .6rem 1rem; font-size: 1rem; border-radius: 10px; border: none; color: white; background: linear-gradient(90deg,var(--accent),var(--accent2)); cursor: pointer; box-shadow: 0 6px 18px rgba(37,117,252,.18); }
+    button:active{ transform: translateY(1px);} 
+    .note { color: #04396a; margin-top: 1rem; background: rgba(255,255,255,.85); padding: .6rem; border-radius:8px }
+    .controls{ display:flex; gap:12px; align-items:center }
+    .credit{ margin-top:1rem; color: rgba(255,255,255,.9); }
   </style>
 </head>
 <body>
   <h1>Process Checker</h1>
   <p>Enter a process name (for example <code>notepad.exe</code>) and click <strong>Search</strong>. This will navigate to the appropriate page on <em>processchecker.com</em> starting from the first letter.</p>
 
-  <form id="searchForm">
+  <form id="searchForm" action="/search" method="GET">
     <label>
       Process name
-      <input id="processName" type="text" placeholder="e.g. notepad.exe" aria-label="Process name" />
+      <input id="processName" name="process" type="text" placeholder="e.g. notepad.exe" aria-label="Process name" />
     </label>
 
-    <label style="display:flex; align-items:center; gap:.5rem;">
-      <input id="openNewTab" type="checkbox" />
-      <span>Open in new tab</span>
-    </label>
+    <div class="controls">
+      <label style="display:flex; align-items:center; gap:.5rem; background: rgba(255,255,255,.85); padding:.4rem .6rem; border-radius:8px">
+        <input id="openNewTab" type="checkbox" />
+        <span style="font-weight:500; color:#0b1320">Open in new tab</span>
+      </label>
 
-    <div style="margin-top:1rem;">
-      <button id="searchBtn" type="submit">Search</button>
+      <div style="margin-left:auto">
+        <button id="searchBtn" type="submit">Search</button>
+      </div>
     </div>
   </form>
 
@@ -37,22 +51,24 @@
   <script>
     const form = document.getElementById('searchForm');
     form.addEventListener('submit', function (e) {
-      e.preventDefault();
+      // allow default submit when not opening new tab
       const input = document.getElementById('processName');
       const name = (input.value || '').trim();
       if (!name) {
+        e.preventDefault();
         alert('Please enter a process name.');
         input.focus();
         return;
       }
 
-      const firstChar = name[0].toLowerCase();
-      const firstLetter = encodeURIComponent(firstChar);
-      const url = `https://processchecker.com/file.php?start=${firstLetter}`;
-
       const openNewTab = document.getElementById('openNewTab').checked;
-      if (openNewTab) window.open(url, '_blank');
-      else window.location.href = url;
+      if (openNewTab) {
+        e.preventDefault();
+        // open the server route in a new tab which will redirect to processchecker
+        const url = `/search?process=${encodeURIComponent(name)}`;
+        window.open(url, '_blank');
+      }
+      // otherwise let the form submit to /search and the server will redirect
     });
   </script>
 </body>
