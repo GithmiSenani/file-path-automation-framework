@@ -4,7 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "playwright test"
+    "test": "playwright test",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
   },
   "keywords": [],
   "author": "",
