@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Process Checker UI</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Roboto, "Segoe UI", Arial; padding: 2rem; max-width: 640px; margin: auto; }
+    label { display: block; margin-bottom: 1rem; }
+    input[type="text"] { width: 100%; padding: .5rem; font-size: 1rem; }
+    button { padding: .6rem 1rem; font-size: 1rem; }
+    .note { color: #555; margin-top: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>Process Checker</h1>
+  <p>Enter a process name (for example <code>notepad.exe</code>) and click <strong>Search</strong>. This will navigate to the appropriate page on <em>processchecker.com</em> starting from the first letter.</p>
+
+  <form id="searchForm">
+    <label>
+      Process name
+      <input id="processName" type="text" placeholder="e.g. notepad.exe" aria-label="Process name" />
+    </label>
+
+    <label style="display:flex; align-items:center; gap:.5rem;">
+      <input id="openNewTab" type="checkbox" />
+      <span>Open in new tab</span>
+    </label>
+
+    <div style="margin-top:1rem;">
+      <button id="searchBtn" type="submit">Search</button>
+    </div>
+  </form>
+
+  <p class="note">If the site uses pagination you'll land on the page for the first letter. Use the automation test to search pages automatically.</p>
+
+  <script>
+    const form = document.getElementById('searchForm');
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      const input = document.getElementById('processName');
+      const name = (input.value || '').trim();
+      if (!name) {
+        alert('Please enter a process name.');
+        input.focus();
+        return;
+      }
+
+      const firstChar = name[0].toLowerCase();
+      const firstLetter = encodeURIComponent(firstChar);
+      const url = `https://processchecker.com/file.php?start=${firstLetter}`;
+
+      const openNewTab = document.getElementById('openNewTab').checked;
+      if (openNewTab) window.open(url, '_blank');
+      else window.location.href = url;
+    });
+  </script>
+</body>
+</html>
