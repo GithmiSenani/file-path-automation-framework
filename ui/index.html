@@ -42,11 +42,14 @@
 
       <div style="margin-left:auto">
         <button id="searchBtn" type="submit">Search</button>
+        <button id="autoCheckBtn" type="button" style="margin-left:8px; background: linear-gradient(90deg,#1db954,#11998e);">Auto-check</button>
       </div>
     </div>
   </form>
 
   <p class="note">If the site uses pagination you'll land on the page for the first letter. Use the automation test to search pages automatically.</p>
+
+  <div id="result" style="margin-top:1rem; background: rgba(255,255,255,.95); padding: 1rem; border-radius:8px; display:none"></div>
 
   <script>
     const form = document.getElementById('searchForm');
@@ -69,6 +72,40 @@
         window.open(url, '_blank');
       }
       // otherwise let the form submit to /search and the server will redirect
+    });
+
+    // Auto-check button: call /api/check and display results
+    document.getElementById('autoCheckBtn').addEventListener('click', async () => {
+      const input = document.getElementById('processName');
+      const name = (input.value || '').trim();
+      const resultEl = document.getElementById('result');
+      resultEl.style.display = 'block';
+      if (!name) { resultEl.innerHTML = '<strong style="color:#c0392b">Please enter a process name.</strong>'; input.focus(); return; }
+
+      resultEl.innerHTML = '<em>Searching remotely, please wait…</em>';
+      try {
+        const resp = await fetch(`/api/check?process=${encodeURIComponent(name)}`);
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          resultEl.innerHTML = `<strong style="color:#c0392b">Error: ${err && err.error ? err.error : resp.statusText}</strong>`;
+          return;
+        }
+        const json = await resp.json();
+        if (!json.found) {
+          resultEl.innerHTML = `<strong>Not found.</strong> Checked pages: ${json.checkedPages || 0}`;
+          return;
+        }
+
+        const parts = [];
+        parts.push(`<div><strong>Found</strong> — checked pages: ${json.checkedPages}</div>`);
+        if (json.detailUrl) parts.push(`<div>Detail: <a href="${json.detailUrl}" target="_blank">open detail page</a></div>`);
+        if (json.filePath) parts.push(`<div>File path: <code>${json.filePath}</code></div>`);
+        if (json.productName) parts.push(`<div>Product name: <strong>${json.productName}</strong></div>`);
+
+        resultEl.innerHTML = parts.join('\n');
+      } catch (err) {
+        resultEl.innerHTML = `<strong style="color:#c0392b">Error: ${err && err.message ? err.message : String(err)}</strong>`;
+      }
     });
   </script>
 </body>
