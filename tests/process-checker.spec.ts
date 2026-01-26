@@ -1,67 +1,79 @@
 import { test, expect } from '@playwright/test';
+import path from 'path';
 
-// Feature: Automate Process Name Checking
-// Scenario: Verify a process name automatically
-// Usage:
-//  - Default (example): npx playwright test tests/process-checker.spec.ts
-//  - To test a specific process: set env vars before running the test:
-//      PROCESS_NAME=notepad.exe PROCESS_FIRST_LETTER=n npm run test
+test('Manual process input → smart alphabetical search on processchecker', async ({ browser }) => {
+  const context = await browser.newContext();
+  const page = await context.newPage();
 
-test('Verify a process exists on processchecker', async ({ page }) => {
-  const defaultProcess = 'notepad.exe';
-  const processName = (process.env.PROCESS_NAME ?? defaultProcess).trim();
-  const firstLetter = (process.env.PROCESS_FIRST_LETTER ?? processName[0] ?? '').toLowerCase();
+  // 1️⃣ Open local UI
+  const localHtml = path.join(__dirname, '..', 'ui', 'index.html');
+  await page.goto(`file://${localHtml}`);
+  console.log('🟢 Local UI opened. Type your process name.');
 
-  if (!firstLetter) {
-    throw new Error('First letter could not be determined. Set PROCESS_FIRST_LETTER or PROCESS_NAME.');
-  }
+  // 2️⃣ Pause for manual typing
+  await page.pause(); // Type process name in the Playwright browser input
 
-  const baseUrl = `https://processchecker.com/file.php?start=${encodeURIComponent(firstLetter)}`;
-  const maxPages = 50; // safety cap
+  // 3️⃣ Read typed process name
+  const processName = (await page.inputValue('#processName')).trim();
+  if (!processName) throw new Error('❌ No process name entered!');
+  console.log(`🔍 Process detected: ${processName}`);
+
+  // 4️⃣ Detect first letter
+  const firstLetter = processName[0].toUpperCase();
+  let pageNumber = 1;
+  const maxPages = 10000; // high max just in case
   let found = false;
-  let foundPage = -1;
 
-  for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
-    const url = `${baseUrl}&page=${pageNum}`;
-    console.log(`Visiting: ${url}`);
+  console.log(`🔠 Starting search on "${firstLetter}" page...`);
+
+  while (pageNumber <= maxPages) {
+    const url =
+      pageNumber === 1
+        ? `https://processchecker.com/file.php?start=${firstLetter}`
+        : `https://processchecker.com/file.php?start=${firstLetter}&page=${pageNumber}`;
+    console.log(`📄 Checking page ${pageNumber}: ${url}`);
+
     await page.goto(url, { waitUntil: 'domcontentloaded' });
 
-    const content = (await page.content()).toLowerCase();
-    const needle = processName.toLowerCase();
+    // Get all processes on this page
+    const processes = (await page.locator('a').allTextContents()).map(p => p.trim());
+    if (processes.length === 0) {
+      console.log('ℹ️ No processes on this page');
+      break;
+    }
 
-    if (content.includes(needle)) {
+    const firstProcess = processes[0];
+    const lastProcess = processes[processes.length - 1];
+
+    // If process comes before first → stop
+    if (processName.localeCompare(firstProcess) < 0) {
+      console.log('❌ Process would appear before this page → not found');
+      break;
+    }
+
+    // If process comes after last → continue next page
+    if (processName.localeCompare(lastProcess) > 0) {
+      pageNumber++;
+      continue;
+    }
+
+    // Target is within this page → search exact
+    const processLink = page.locator('a', { hasText: processName });
+    if (await processLink.count() > 0) {
+      console.log(`✅ Found "${processName}" on page ${pageNumber}`);
+      await processLink.first().click();
+      await page.waitForLoadState('domcontentloaded');
       found = true;
-      foundPage = pageNum;
-      console.log(`Found "${processName}" on page ${pageNum}`);
       break;
     }
 
-    // Heuristic: detect an empty result or last page to stop early
-    if (
-      content.includes('no entries') ||
-      content.includes('no results') ||
-      content.includes('nothing found') ||
-      content.includes('no files') ||
-      content.includes('not found')
-    ) {
-      console.log('Detected end of results or no entries on this page. Stopping search.');
-      break;
-    }
-
-    // Also try to detect if there's no next page link by searching for 'page=' patterns
-    // If the page HTML doesn't contain further page links, stop.
-    const hasFurtherPages = /page=\d+/i.test(content);
-    if (!hasFurtherPages) {
-      console.log('No pagination links detected on page; stopping search.');
-      break;
-    }
+    console.log('ℹ️ Process in range but not on this page → next page');
+    pageNumber++;
   }
 
-  if (found) {
-    // Assert true so test passes when process exists
-    expect(found).toBeTruthy();
-  } else {
-    // Fail the test to indicate the process was not found
-    throw new Error(`Process "${processName}" not found starting at ${baseUrl} (checked up to ${maxPages} pages).`);
-  }
+  if (!found) throw new Error(`❌ Process "${processName}" not found!`);
+
+  // Assert we are on detail page
+  expect(page.url()).not.toContain('file.php?start=');
+  console.log('🎉 Process detail page opened successfully!');
 });
