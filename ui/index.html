@@ -18,59 +18,104 @@
     label { display: block; margin-bottom: 1rem; color: #0b1320; font-weight:600; }
     input[type="text"] { width: 100%; padding: .75rem; font-size: 1rem; border-radius:8px; border: none; box-shadow: inset 0 -2px 8px rgba(0,0,0,.06); }
     button { padding: .6rem 1rem; font-size: 1rem; border-radius: 10px; border: none; color: white; background: linear-gradient(90deg,var(--accent),var(--accent2)); cursor: pointer; box-shadow: 0 6px 18px rgba(37,117,252,.18); }
-    button:active{ transform: translateY(1px);} 
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    button:active:not(:disabled){ transform: translateY(1px);} 
     .note { color: #04396a; margin-top: 1rem; background: rgba(255,255,255,.85); padding: .6rem; border-radius:8px }
     .controls{ display:flex; gap:12px; align-items:center }
-    .credit{ margin-top:1rem; color: rgba(255,255,255,.9); }
+    .result-box { margin-top:1.5rem; background: rgba(255,255,255,.95); padding: 1.5rem; border-radius:8px; display:none }
+    .result-box.show { display: block; }
+    .success { border-left: 4px solid #10b981; }
+    .error { border-left: 4px solid #ef4444; }
+    .loading { text-align: center; color: #666; }
+    .detail { margin: 0.5rem 0; }
+    .detail strong { color: #1e40af; }
   </style>
 </head>
 <body>
-  <h1>Process Checker</h1>
-  <p>Enter a process name (for example <code>notepad.exe</code>) and click <strong>Search</strong>. This will navigate to the appropriate page on <em>processchecker.com</em> starting from the first letter.</p>
+  <h1>🔍 Process Checker</h1>
+  <p>Enter a process name and click <strong>Search</strong>. The system will automatically search processchecker.com page by page starting from the first letter.</p>
 
-  <form id="searchForm" action="/search" method="GET">
+  <form id="searchForm">
     <label>
       Process name
-      <input id="processName" name="process" type="text" placeholder="e.g. notepad.exe" aria-label="Process name" />
+      <input id="processName" name="process" type="text" placeholder="e.g. notepad.exe, explorer.exe" aria-label="Process name" />
     </label>
 
     <div class="controls">
-      <label style="display:flex; align-items:center; gap:.5rem; background: rgba(255,255,255,.85); padding:.4rem .6rem; border-radius:8px">
-        <input id="openNewTab" type="checkbox" />
-        <span style="font-weight:500; color:#0b1320">Open in new tab</span>
-      </label>
-
-      <div style="margin-left:auto">
-        <button id="searchBtn" type="submit">Search on Website</button>
-      </div>
+      <button id="searchBtn" type="submit">🔎 Search Process</button>
     </div>
   </form>
 
-  <p class="note">Click <strong>Search on Website</strong> to navigate to processchecker.com for the first letter of the process. Then browse and find your process manually. Or use <code>npm run search processname.exe</code> for automated search.</p>
+  <p class="note">Example: Enter "explorer.exe" and click Search. The system will check https://processchecker.com/file.php?start=E and search page 1, page 2, page 3... until found.</p>
 
-  <div id="result" style="margin-top:1rem; background: rgba(255,255,255,.95); padding: 1rem; border-radius:8px; display:none"></div>
+  <div id="result" class="result-box"></div>
 
   <script>
     const form = document.getElementById('searchForm');
-    form.addEventListener('submit', function (e) {
-      // allow default submit when not opening new tab
-      const input = document.getElementById('processName');
-      const name = (input.value || '').trim();
-      if (!name) {
-        e.preventDefault();
+    const resultDiv = document.getElementById('result');
+    const searchBtn = document.getElementById('searchBtn');
+    const processInput = document.getElementById('processName');
+
+    form.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      
+      const processName = processInput.value.trim();
+      if (!processName) {
         alert('Please enter a process name.');
-        input.focus();
+        processInput.focus();
         return;
       }
 
-      const openNewTab = document.getElementById('openNewTab').checked;
-      if (openNewTab) {
-        e.preventDefault();
-        // open the server route in a new tab which will redirect to processchecker
-        const url = `/search?process=${encodeURIComponent(name)}`;
-        window.open(url, '_blank');
+      // Show loading
+      resultDiv.className = 'result-box show loading';
+      resultDiv.innerHTML = `
+        <h3>🔄 Searching...</h3>
+        <p>Checking processchecker.com for "${processName}"</p>
+        <p>This may take 30-60 seconds. Please wait...</p>
+      `;
+      searchBtn.disabled = true;
+
+      try {
+        const response = await fetch('/api/search', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ processName: processName })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          // Success - show results
+          resultDiv.className = 'result-box show success';
+          resultDiv.innerHTML = `
+            <h3>✅ Process Found!</h3>
+            <div class="detail"><strong>Process Name:</strong> ${data.processName}</div>
+            <div class="detail"><strong>Found on Page:</strong> ${data.foundOnPage}</div>
+            <div class="detail"><strong>File Path:</strong> ${data.filePath}</div>
+            <div class="detail"><strong>Product:</strong> ${data.product}</div>
+            <div class="detail"><strong>Company:</strong> ${data.company}</div>
+            <div class="detail"><strong>Detail URL:</strong> <a href="${data.url}" target="_blank">${data.url}</a></div>
+          `;
+        } else {
+          // Not found
+          resultDiv.className = 'result-box show error';
+          resultDiv.innerHTML = `
+            <h3>❌ Not Found</h3>
+            <p>${data.message || 'Process not found'}</p>
+          `;
+        }
+      } catch (error) {
+        // Error
+        resultDiv.className = 'result-box show error';
+        resultDiv.innerHTML = `
+          <h3>❌ Error</h3>
+          <p>${error.message}</p>
+        `;
+      } finally {
+        searchBtn.disabled = false;
       }
-      // otherwise let the form submit to /search and the server will redirect
     });
   </script>
 </body>

@@ -48,7 +48,8 @@ async function searchProcess(processName) {
 
     // Loop through pages
     for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
-      const url = `${baseUrl}&page=${pageNum}`;
+      // First page doesn't have &page=1, subsequent pages have &page=2, &page=3, etc.
+      const url = pageNum === 1 ? baseUrl : `${baseUrl}&page=${pageNum}`;
       pagesChecked = pageNum;
 
       // Show progress
@@ -60,13 +61,20 @@ async function searchProcess(processName) {
 
         // Get all link texts
         const links = await page.$$eval('a', els => 
-          els.map(a => ({ text: a.textContent, href: a.href }))
+          els.map(a => ({ text: a.textContent.trim(), href: a.href }))
         );
 
-        // Search for process name
-        const matchedLink = links.find(link => 
-          link.text && link.text.toLowerCase().includes(processName.toLowerCase())
+        // Search for process name (exact match first, then partial match)
+        let matchedLink = links.find(link => 
+          link.text && link.text.toLowerCase() === processName.toLowerCase()
         );
+        
+        // If no exact match, try partial match
+        if (!matchedLink) {
+          matchedLink = links.find(link => 
+            link.text && link.text.toLowerCase().includes(processName.toLowerCase())
+          );
+        }
 
         if (matchedLink) {
           console.log(`\n\n✅ Found on page ${pageNum}: "${matchedLink.text}"\n`);
