@@ -118,56 +118,96 @@ async function searchProcessAutomated(processName) {
           await page.waitForLoadState('domcontentloaded', { timeout: 10000 });
           // Removed unnecessary wait - extract info immediately
 
-          // Step 4: Extract information from detail page
-          console.log(`\n📋 Process Details:`);
+          // Step 4: Extract information from the table on the page
+          console.log(`\n📋 Extracting Process Details from table...`);
           console.log(`   🔗 URL: ${page.url()}`);
           
-          // Extract detailed information from the page
+          // Extract data from the table with columns: Path, Product Name, Vendor, Version, Size, MD5
           const extractedData = await page.evaluate(() => {
-            const bodyText = document.body.innerText;
+            const allRows = [];
             
-            // Extract file path
-            const pathMatch = bodyText.match(/[A-Za-z]:\\[^\s<>"'\n]+/);
+            // Find the table that contains the process information
+            const tables = document.querySelectorAll('table');
             
-            // Extract product name
-            const productMatch = bodyText.match(/Product\s*Name\s*[:\-]\s*([^\n<]+)/i);
+            for (const table of tables) {
+              const rows = Array.from(table.querySelectorAll('tr'));
+              
+              // Find header row (contains "Path", "Product Name", "Vendor", etc.)
+              let headerRow = null;
+              let headerIndexes = {};
+              
+              for (const row of rows) {
+                const cells = Array.from(row.querySelectorAll('th, td'));
+                const cellTexts = cells.map(c => c.textContent.trim());
+                
+                // Check if this row has the headers we're looking for
+                if (cellTexts.some(text => text.toLowerCase().includes('path') || text.toLowerCase().includes('product name'))) {
+                  headerRow = row;
+                  
+                  // Map column names to their indexes
+                  cellTexts.forEach((text, index) => {
+                    const lower = text.toLowerCase();
+                    if (lower.includes('path')) headerIndexes.path = index;
+                    else if (lower.includes('product')) headerIndexes.product = index;
+                    else if (lower.includes('vendor')) headerIndexes.vendor = index;
+                    else if (lower.includes('version')) headerIndexes.version = index;
+                    else if (lower.includes('size')) headerIndexes.size = index;
+                    else if (lower.includes('md5')) headerIndexes.md5 = index;
+                  });
+                  break;
+                }
+              }
+              
+              // If we found the header row, extract data from ALL following rows
+              if (headerRow && Object.keys(headerIndexes).length > 0) {
+                const headerIndex = rows.indexOf(headerRow);
+                
+                // Loop through all data rows after the header
+                for (let i = headerIndex + 1; i < rows.length; i++) {
+                  const dataRow = rows[i];
+                  const dataCells = Array.from(dataRow.querySelectorAll('td'));
+                  
+                  // Skip empty rows
+                  if (dataCells.length === 0) continue;
+                  
+                  const rowData = {
+                    filePath: dataCells[headerIndexes.path]?.textContent.trim() || 'Not found',
+                    product: dataCells[headerIndexes.product]?.textContent.trim() || 'Not found',
+                    vendor: dataCells[headerIndexes.vendor]?.textContent.trim() || 'Not found',
+                    version: dataCells[headerIndexes.version]?.textContent.trim() || 'Not found',
+                    size: dataCells[headerIndexes.size]?.textContent.trim() || 'Not found',
+                    md5: dataCells[headerIndexes.md5]?.textContent.trim() || 'Not found'
+                  };
+                  
+                  // Only add if we have actual data
+                  if (rowData.filePath !== 'Not found' && rowData.filePath.length > 0) {
+                    allRows.push(rowData);
+                  }
+                }
+                break;
+              }
+            }
             
-            // Extract company/vendor
-            const companyMatch = bodyText.match(/(?:Company|Vendor)\s*[:\-]\s*([^\n<]+)/i);
-            
-            // Extract description
-            const descMatch = bodyText.match(/Description\s*[:\-]\s*([^\n<]+)/i);
-            
-            // Extract version
-            const versionMatch = bodyText.match(/(?:Version|File\s*Version)\s*[:\-]\s*([^\n<]+)/i);
-            
-            return {
-              filePath: pathMatch ? pathMatch[0] : 'Not found',
-              product: productMatch ? productMatch[1].trim() : 'Not found',
-              company: companyMatch ? companyMatch[1].trim() : 'Not found',
-              description: descMatch ? descMatch[1].trim() : 'Not found',
-              version: versionMatch ? versionMatch[1].trim() : 'Not found'
-            };
+            return allRows;
           });
           
-          console.log(`   📁 File Path: ${extractedData.filePath}`);
-          console.log(`   📦 Product: ${extractedData.product}`);
-          console.log(`   🏢 Company/Vendor: ${extractedData.company}`);
-          console.log(`   📝 Description: ${extractedData.description}`);
-          console.log(`   🔢 Version: ${extractedData.version}`);
+          console.log(`   � Found ${extractedData.length} row(s) of data`);
+          extractedData.forEach((row, index) => {
+            console.log(`\n   Row ${index + 1}:`);
+            console.log(`     📁 Path: ${row.filePath}`);
+            console.log(`     📦 Product Name: ${row.product}`);
+            console.log(`     🏢 Vendor: ${row.vendor}`);
+          });
           
-          // Open results page with extracted data
+          // Open results page with extracted data (pass as JSON)
           console.log('\n📊 Opening results page...\n');
           const resultsPath = path.join(__dirname, 'ui', 'results.html');
           const resultsUrl = `file:///${resultsPath.replace(/\\/g, '/')}?` + 
             `name=${encodeURIComponent(matchedLink.text)}` +
-            `&filePath=${encodeURIComponent(extractedData.filePath)}` +
-            `&product=${encodeURIComponent(extractedData.product)}` +
-            `&company=${encodeURIComponent(extractedData.company)}` +
-            `&description=${encodeURIComponent(extractedData.description)}` +
-            `&version=${encodeURIComponent(extractedData.version)}` +
+            `&data=${encodeURIComponent(JSON.stringify(extractedData))}` +
             `&url=${encodeURIComponent(page.url())}` +
             `&page=${pageNum}`;
+
           
           await page.goto(resultsUrl);
           

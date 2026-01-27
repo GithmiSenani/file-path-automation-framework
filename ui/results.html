@@ -6,105 +6,115 @@
   <title>Process Details - Results</title>
   <style>
     :root{
-      --bg1: #667eea;
-      --bg2: #764ba2;
-      --accent: #10b981;
-      --accent2: #3b82f6;
+      --bg1: #f8f9fa;
+      --bg2: #e9ecef;
+      --accent: #0d6efd;
+      --accent2: #6c757d;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { 
       font-family: system-ui, -apple-system, Roboto, "Segoe UI", Arial; 
-      background: linear-gradient(135deg, var(--bg1), var(--bg2)); 
+      background: linear-gradient(135deg, #ffffff, #f8f9fa); 
       min-height: 100vh;
       padding: 2rem;
     }
     .container {
-      max-width: 900px;
+      max-width: 1100px;
       margin: 0 auto;
       background: white;
       border-radius: 16px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
       overflow: hidden;
+      border: 1px solid #e9ecef;
     }
     .header {
-      background: linear-gradient(135deg, #667eea, #764ba2);
+      background: linear-gradient(135deg, #ffffff, #f8f9fa);
       padding: 2rem;
-      color: white;
+      border-bottom: 2px solid #e9ecef;
       text-align: center;
     }
     .header h1 {
       font-size: 2rem;
       margin-bottom: 0.5rem;
+      color: #212529;
     }
     .header p {
-      opacity: 0.9;
+      color: #6c757d;
       font-size: 1rem;
     }
     .content {
       padding: 2rem;
     }
     .process-name {
-      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-      color: white;
+      background: linear-gradient(135deg, #e7f3ff, #f0f8ff);
+      color: #0d6efd;
       padding: 1.5rem;
       border-radius: 12px;
       margin-bottom: 2rem;
       text-align: center;
       font-size: 1.5rem;
       font-weight: bold;
-      box-shadow: 0 4px 15px rgba(245, 87, 108, 0.3);
+      border: 2px solid #cfe2ff;
     }
     table {
       width: 100%;
       border-collapse: collapse;
       margin-bottom: 2rem;
+      background: white;
     }
     thead {
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      color: white;
+      background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+      border-bottom: 2px solid #dee2e6;
     }
     thead th {
       padding: 1rem;
       text-align: left;
       font-weight: 600;
-      font-size: 0.95rem;
+      font-size: 0.9rem;
       text-transform: uppercase;
       letter-spacing: 0.5px;
+      white-space: nowrap;
+      color: #495057;
+      border-right: 1px solid #dee2e6;
+    }
+    thead th:last-child {
+      border-right: none;
     }
     tbody tr {
-      border-bottom: 1px solid #e5e7eb;
+      border-bottom: 1px solid #e9ecef;
       transition: background 0.2s;
     }
     tbody tr:hover {
-      background: #f9fafb;
+      background: #f8f9fa;
     }
     tbody td {
       padding: 1rem;
       vertical-align: top;
-    }
-    tbody td:first-child {
-      font-weight: 600;
-      color: #4b5563;
-      width: 30%;
+      word-break: break-word;
+      color: #212529;
+      border-right: 1px solid #f1f3f5;
     }
     tbody td:last-child {
-      color: #1f2937;
-      word-break: break-word;
+      border-right: none;
+    }
+    tbody td a {
+      color: #0d6efd;
+      text-decoration: none;
+    }
+    tbody td a:hover {
+      text-decoration: underline;
     }
     .badge {
       display: inline-block;
-      padding: 0.25rem 0.75rem;
-      border-radius: 20px;
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
       font-size: 0.85rem;
       font-weight: 600;
     }
     .badge-success {
-      background: #d1fae5;
-      color: #065f46;
-    }
-    .badge-warning {
-      background: #fef3c7;
-      color: #92400e;
+      background: #d1e7dd;
+      color: #0f5132;
+      border: 1px solid #badbcc;
     }
     .actions {
       display: flex;
@@ -119,21 +129,30 @@
       font-size: 1rem;
       font-weight: 600;
       cursor: pointer;
-      transition: transform 0.2s, box-shadow 0.2s;
+      transition: all 0.2s;
       text-decoration: none;
       display: inline-block;
     }
     .btn:hover {
       transform: translateY(-2px);
-      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
     .btn-primary {
-      background: linear-gradient(135deg, #667eea, #764ba2);
+      background: #0d6efd;
       color: white;
+      border: 2px solid #0d6efd;
+    }
+    .btn-primary:hover {
+      background: #0b5ed7;
     }
     .btn-secondary {
-      background: #f3f4f6;
-      color: #374151;
+      background: white;
+      color: #6c757d;
+      border: 2px solid #dee2e6;
+    }
+    .btn-secondary:hover {
+      background: #f8f9fa;
+      border-color: #adb5bd;
     }
     .icon {
       margin-right: 0.5rem;
@@ -155,39 +174,16 @@
       <table>
         <thead>
           <tr>
-            <th>Property</th>
-            <th>Value</th>
+            <th>Process Name</th>
+            <th>Path</th>
+            <th>Product Name</th>
+            <th>Vendor</th>
+            <th>Source URL</th>
+            <th>Found on Page</th>
           </tr>
         </thead>
         <tbody id="dataTable">
-          <tr>
-            <td>📁 File Path</td>
-            <td id="filePath">Loading...</td>
-          </tr>
-          <tr>
-            <td>📦 Product Name</td>
-            <td id="product">Loading...</td>
-          </tr>
-          <tr>
-            <td>🏢 Company/Vendor</td>
-            <td id="company">Loading...</td>
-          </tr>
-          <tr>
-            <td>📝 Description</td>
-            <td id="description">Loading...</td>
-          </tr>
-          <tr>
-            <td>🔢 Version</td>
-            <td id="version">Loading...</td>
-          </tr>
-          <tr>
-            <td>🔗 Source URL</td>
-            <td id="url">Loading...</td>
-          </tr>
-          <tr>
-            <td>📄 Found on Page</td>
-            <td id="page">Loading...</td>
-          </tr>
+          <!-- Rows will be dynamically populated by JavaScript -->
         </tbody>
       </table>
     </div>
@@ -203,17 +199,13 @@
   </div>
 
   <script>
-    // Get data from URL parameters or localStorage
+    // Get data from URL parameters
     function getResultData() {
       const params = new URLSearchParams(window.location.search);
       
       return {
         processName: params.get('name') || 'Unknown Process',
-        filePath: params.get('filePath') || 'Not found',
-        product: params.get('product') || 'Not found',
-        company: params.get('company') || 'Not found',
-        description: params.get('description') || 'Not found',
-        version: params.get('version') || 'Not found',
+        data: JSON.parse(params.get('data') || '[]'),
         url: params.get('url') || '#',
         page: params.get('page') || 'Unknown'
       };
@@ -221,21 +213,60 @@
 
     // Display the data
     function displayResults() {
-      const data = getResultData();
+      const result = getResultData();
       
-      document.getElementById('processName').textContent = data.processName;
-      document.getElementById('filePath').textContent = data.filePath;
-      document.getElementById('product').textContent = data.product;
-      document.getElementById('company').textContent = data.company;
-      document.getElementById('description').textContent = data.description;
-      document.getElementById('version').textContent = data.version;
-      document.getElementById('page').innerHTML = `<span class="badge badge-success">Page ${data.page}</span>`;
+      document.getElementById('processName').textContent = result.processName;
       
-      const urlCell = document.getElementById('url');
-      if (data.url !== '#') {
-        urlCell.innerHTML = `<a href="${data.url}" target="_blank" style="color: #3b82f6; text-decoration: underline;">${data.url}</a>`;
+      // Clear the table body
+      const tbody = document.getElementById('dataTable');
+      tbody.innerHTML = '';
+      
+      // If we have data, create rows
+      if (result.data && result.data.length > 0) {
+        result.data.forEach((row) => {
+          const tr = document.createElement('tr');
+          
+          // Process Name
+          const tdProcess = document.createElement('td');
+          tdProcess.textContent = result.processName;
+          tr.appendChild(tdProcess);
+          
+          // Path
+          const tdPath = document.createElement('td');
+          tdPath.textContent = row.filePath || 'Not found';
+          tr.appendChild(tdPath);
+          
+          // Product Name
+          const tdProduct = document.createElement('td');
+          tdProduct.textContent = row.product || 'Not found';
+          tr.appendChild(tdProduct);
+          
+          // Vendor
+          const tdVendor = document.createElement('td');
+          tdVendor.textContent = row.vendor || 'Not found';
+          tr.appendChild(tdVendor);
+          
+          // Source URL (only add once for first row)
+          const tdUrl = document.createElement('td');
+          if (result.url !== '#') {
+            tdUrl.innerHTML = `<a href="${result.url}" target="_blank" style="color: #0d6efd; text-decoration: underline;">${result.url}</a>`;
+          } else {
+            tdUrl.textContent = 'Not available';
+          }
+          tr.appendChild(tdUrl);
+          
+          // Found on Page (only add once for first row)
+          const tdPage = document.createElement('td');
+          tdPage.innerHTML = `<span class="badge badge-success">Page ${result.page}</span>`;
+          tr.appendChild(tdPage);
+          
+          tbody.appendChild(tr);
+        });
       } else {
-        urlCell.textContent = 'Not available';
+        // No data - show error message
+        const tr = document.createElement('tr');
+        tr.innerHTML = '<td colspan="6" style="text-align: center; color: #6c757d;">No data found</td>';
+        tbody.appendChild(tr);
       }
     }
 
