@@ -20,8 +20,11 @@ app.post('/api/search', async (req, res) => {
   
   let browser;
   try {
-    // Launch browser
-    browser = await chromium.launch({ headless: true });
+    // Launch browser (visible so you can see the search)
+    browser = await chromium.launch({ 
+      headless: false,
+      slowMo: 500 
+    });
     const context = await browser.newContext();
     const page = await context.newPage();
 
