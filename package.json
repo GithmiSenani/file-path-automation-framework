@@ -8,6 +8,7 @@
     "start": "node server.js",
     "search": "node search-process.js",
     "search-manual": "node search-interactive.js",
+    "automate": "node automate-search.js",
     "test:fast": "playwright test tests/process-search.spec.ts --project=chromium --workers=1",
     "test:headed": "playwright test tests/process-search.spec.ts --project=chromium --workers=1 --headed",
     "open-ui": "npx open-cli ui/index.html",

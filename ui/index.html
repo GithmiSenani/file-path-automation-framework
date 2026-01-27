@@ -46,15 +46,11 @@
     </div>
   </form>
 
-  <div id="result" class="result-box"></div>
-
   <script>
     const form = document.getElementById('searchForm');
-    const resultDiv = document.getElementById('result');
-    const searchBtn = document.getElementById('searchBtn');
     const processInput = document.getElementById('processName');
 
-    form.addEventListener('submit', async function (e) {
+    form.addEventListener('submit', function (e) {
       e.preventDefault();
       
       const processName = processInput.value.trim();
@@ -64,56 +60,12 @@
         return;
       }
 
-      // Show loading
-      resultDiv.className = 'result-box show loading';
-      resultDiv.innerHTML = `
-        <h3>🔄 Searching...</h3>
-        <p>Checking processchecker.com for "${processName}"</p>
-        <p>This may take 30-60 seconds. Please wait...</p>
-      `;
-      searchBtn.disabled = true;
-
-      try {
-        const response = await fetch('/api/search', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ processName: processName })
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-          // Success - show results
-          resultDiv.className = 'result-box show success';
-          resultDiv.innerHTML = `
-            <h3>✅ Process Found!</h3>
-            <div class="detail"><strong>Process Name:</strong> ${data.processName}</div>
-            <div class="detail"><strong>Found on Page:</strong> ${data.foundOnPage}</div>
-            <div class="detail"><strong>File Path:</strong> ${data.filePath}</div>
-            <div class="detail"><strong>Product:</strong> ${data.product}</div>
-            <div class="detail"><strong>Company:</strong> ${data.company}</div>
-            <div class="detail"><strong>Detail URL:</strong> <a href="${data.url}" target="_blank">${data.url}</a></div>
-          `;
-        } else {
-          // Not found
-          resultDiv.className = 'result-box show error';
-          resultDiv.innerHTML = `
-            <h3>❌ Not Found</h3>
-            <p>${data.message || 'Process not found'}</p>
-          `;
-        }
-      } catch (error) {
-        // Error
-        resultDiv.className = 'result-box show error';
-        resultDiv.innerHTML = `
-          <h3>❌ Error</h3>
-          <p>${error.message}</p>
-        `;
-      } finally {
-        searchBtn.disabled = false;
-      }
+      // Get first letter and open processchecker.com in new tab
+      const firstLetter = processName[0].toUpperCase();
+      const url = `https://processchecker.com/file.php?start=${firstLetter}`;
+      
+      // Open in new tab
+      window.open(url, '_blank');
     });
   </script>
 </body>
