@@ -6,6 +6,7 @@
   "scripts": {
     "test": "playwright test",
     "start": "node server.js",
+    "app": "node app.js",
     "search": "node search-process.js",
     "search-manual": "node search-interactive.js",
     "automate": "node automate-search.js",

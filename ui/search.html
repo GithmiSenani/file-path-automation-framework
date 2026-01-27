@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Process Checker - Search</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: system-ui, -apple-system, Roboto, "Segoe UI", Arial; 
+      background: linear-gradient(135deg, #ffffff, #f8f9fa); 
+      min-height: 100vh;
+      padding: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .container {
+      max-width: 600px;
+      width: 100%;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      padding: 3rem;
+      border: 1px solid #e9ecef;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      color: #212529;
+    }
+    .header p {
+      color: #6c757d;
+      font-size: 1rem;
+    }
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: #495057;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 0.875rem 1rem;
+      font-size: 1rem;
+      border: 2px solid #dee2e6;
+      border-radius: 10px;
+      transition: all 0.2s;
+      background: #f8f9fa;
+    }
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #0d6efd;
+      background: white;
+      box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
+    }
+    .btn {
+      width: 100%;
+      padding: 1rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    .btn-primary {
+      background: #0d6efd;
+      color: white;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: #0b5ed7;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+    }
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .status {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      border-radius: 10px;
+      text-align: center;
+      display: none;
+    }
+    .status.show {
+      display: block;
+    }
+    .status.loading {
+      background: #e7f3ff;
+      color: #0d6efd;
+      border: 1px solid #cfe2ff;
+    }
+    .status.success {
+      background: #d1e7dd;
+      color: #0f5132;
+      border: 1px solid #badbcc;
+    }
+    .status.error {
+      background: #f8d7da;
+      color: #842029;
+      border: 1px solid #f5c2c7;
+    }
+    .note {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      background: #fff3cd;
+      border: 1px solid #ffe69c;
+      border-radius: 10px;
+      color: #664d03;
+      font-size: 0.9rem;
+    }
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #0d6efd;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🔍 Process Checker</h1>
+      <p>Automated search on ProcessChecker.com</p>
+    </div>
+
+    <form id="searchForm">
+      <div class="form-group">
+        <label for="processName">Process Name</label>
+        <input 
+          type="text" 
+          id="processName" 
+          name="processName" 
+          placeholder="e.g., explorer.exe, notepad.exe, chrome.exe"
+          required
+          autofocus
+        />
+      </div>
+
+      <button type="submit" class="btn btn-primary" id="searchBtn">
+        <span id="btnText">🚀 Start Search</span>
+      </button>
+    </form>
+
+    <div class="status" id="status"></div>
+
+    <div class="note">
+      <strong>💡 How it works:</strong><br>
+      Enter a process name and click "Start Search". The automation will:
+      <ul style="margin-top: 0.5rem; margin-left: 1.5rem;">
+        <li>Navigate to the correct alphabetic page</li>
+        <li>Search through pages automatically</li>
+        <li>Extract file path, product name, and vendor</li>
+        <li>Display results in a new browser window</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('searchForm');
+    const processInput = document.getElementById('processName');
+    const searchBtn = document.getElementById('searchBtn');
+    const btnText = document.getElementById('btnText');
+    const statusDiv = document.getElementById('status');
+
+    form.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      
+      const processName = processInput.value.trim();
+      if (!processName) {
+        showStatus('Please enter a process name', 'error');
+        return;
+      }
+
+      // Disable form
+      searchBtn.disabled = true;
+      btnText.innerHTML = '<span class="spinner"></span> Searching...';
+      showStatus('Starting automated search... Please wait, this may take 30-60 seconds.', 'loading');
+
+      try {
+        const response = await fetch('/api/search', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ processName })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showStatus(`✅ Search started for "${processName}"! A new browser window will open with results.`, 'success');
+          
+          // Reset form after 3 seconds
+          setTimeout(() => {
+            searchBtn.disabled = false;
+            btnText.textContent = '🚀 Start Search';
+            processInput.value = '';
+            statusDiv.classList.remove('show');
+          }, 3000);
+        } else {
+          throw new Error(data.error || 'Search failed');
+        }
+      } catch (error) {
+        showStatus(`❌ Error: ${error.message}`, 'error');
+        searchBtn.disabled = false;
+        btnText.textContent = '🚀 Start Search';
+      }
+    });
+
+    function showStatus(message, type) {
+      statusDiv.textContent = message;
+      statusDiv.className = `status show ${type}`;
+    }
+  </script>
+</body>
+</html>
