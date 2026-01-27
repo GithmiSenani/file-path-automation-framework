@@ -12,6 +12,7 @@
  */
 
 const { chromium } = require('playwright');
+const path = require('path');
 
 async function searchProcessAutomated(processName) {
   if (!processName) {
@@ -31,8 +32,8 @@ async function searchProcessAutomated(processName) {
     // Launch browser (visible)
     console.log('📱 Launching browser...');
     browser = await chromium.launch({ 
-      headless: false,
-      slowMo: 300 // Slow down so you can see what's happening
+      headless: false
+      // Removed slowMo for faster execution
     });
     
     const context = await browser.newContext();
@@ -56,19 +57,37 @@ async function searchProcessAutomated(processName) {
       console.log(`📄 Page ${pageNum}: ${url}`);
 
       try {
-        // Navigate to page
-        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
-        await page.waitForTimeout(1000); // Wait for content to load
+        // Navigate to page (faster timeout)
+        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
+        // Removed unnecessary wait - page is ready after domcontentloaded
 
-        // Get all process links on the page
+        // Get all process links on the page (only .exe files)
         const links = await page.$$eval('a', els => 
           els.map(a => ({ 
             text: a.textContent.trim(), 
             href: a.href 
-          })).filter(link => link.text && link.text.length > 0)
+          }))
+          .filter(link => 
+            link.text && 
+            link.text.length > 0 && 
+            link.text.toLowerCase().endsWith('.exe') &&
+            !link.text.toLowerCase().includes('processchecker')
+          )
         );
 
-        console.log(`   📊 Found ${links.length} links on this page`);
+        console.log(`   📊 Found ${links.length} process links on this page`);
+
+        if (links.length === 0) {
+          console.log(`   ⚠️  No process links found, moving to next page...`);
+          continue;
+        }
+
+        // Check alphabetical range (but don't skip - just for info)
+        const firstProcess = links[0].text.toLowerCase();
+        const lastProcess = links[links.length - 1].text.toLowerCase();
+        const searchName = processName.toLowerCase();
+
+        console.log(`   📝 Range: "${links[0].text}" to "${links[links.length - 1].text}"`);
 
         // Search for EXACT match first (case-insensitive)
         let matchedLink = links.find(link => 
@@ -96,49 +115,74 @@ async function searchProcessAutomated(processName) {
             await page.goto(matchedLink.href);
           }
           
-          await page.waitForLoadState('domcontentloaded', { timeout: 15000 });
-          await page.waitForTimeout(2000);
+          await page.waitForLoadState('domcontentloaded', { timeout: 10000 });
+          // Removed unnecessary wait - extract info immediately
 
           // Step 4: Extract information from detail page
           console.log(`\n📋 Process Details:`);
           console.log(`   🔗 URL: ${page.url()}`);
           
-          const bodyText = await page.textContent('body');
+          // Extract detailed information from the page
+          const extractedData = await page.evaluate(() => {
+            const bodyText = document.body.innerText;
+            
+            // Extract file path
+            const pathMatch = bodyText.match(/[A-Za-z]:\\[^\s<>"'\n]+/);
+            
+            // Extract product name
+            const productMatch = bodyText.match(/Product\s*Name\s*[:\-]\s*([^\n<]+)/i);
+            
+            // Extract company/vendor
+            const companyMatch = bodyText.match(/(?:Company|Vendor)\s*[:\-]\s*([^\n<]+)/i);
+            
+            // Extract description
+            const descMatch = bodyText.match(/Description\s*[:\-]\s*([^\n<]+)/i);
+            
+            // Extract version
+            const versionMatch = bodyText.match(/(?:Version|File\s*Version)\s*[:\-]\s*([^\n<]+)/i);
+            
+            return {
+              filePath: pathMatch ? pathMatch[0] : 'Not found',
+              product: productMatch ? productMatch[1].trim() : 'Not found',
+              company: companyMatch ? companyMatch[1].trim() : 'Not found',
+              description: descMatch ? descMatch[1].trim() : 'Not found',
+              version: versionMatch ? versionMatch[1].trim() : 'Not found'
+            };
+          });
           
-          // Extract file path
-          const pathMatch = bodyText?.match(/[A-Za-z]:\\[^\s<>"'\n]+/);
-          if (pathMatch) {
-            console.log(`   📁 File Path: ${pathMatch[0]}`);
-          } else {
-            console.log(`   📁 File Path: Not found`);
-          }
+          console.log(`   📁 File Path: ${extractedData.filePath}`);
+          console.log(`   📦 Product: ${extractedData.product}`);
+          console.log(`   🏢 Company/Vendor: ${extractedData.company}`);
+          console.log(`   📝 Description: ${extractedData.description}`);
+          console.log(`   🔢 Version: ${extractedData.version}`);
           
-          // Extract product name
-          const productMatch = bodyText?.match(/Product\s*Name\s*[:\-]\s*([^\n<]+)/i);
-          if (productMatch) {
-            console.log(`   📦 Product: ${productMatch[1].trim()}`);
-          } else {
-            console.log(`   📦 Product: Not found`);
-          }
-
-          // Extract company
-          const companyMatch = bodyText?.match(/Company\s*[:\-]\s*([^\n<]+)/i);
-          if (companyMatch) {
-            console.log(`   🏢 Company: ${companyMatch[1].trim()}`);
-          } else {
-            console.log(`   🏢 Company: Not found`);
-          }
+          // Open results page with extracted data
+          console.log('\n📊 Opening results page...\n');
+          const resultsPath = path.join(__dirname, 'ui', 'results.html');
+          const resultsUrl = `file:///${resultsPath.replace(/\\/g, '/')}?` + 
+            `name=${encodeURIComponent(matchedLink.text)}` +
+            `&filePath=${encodeURIComponent(extractedData.filePath)}` +
+            `&product=${encodeURIComponent(extractedData.product)}` +
+            `&company=${encodeURIComponent(extractedData.company)}` +
+            `&description=${encodeURIComponent(extractedData.description)}` +
+            `&version=${encodeURIComponent(extractedData.version)}` +
+            `&url=${encodeURIComponent(page.url())}` +
+            `&page=${pageNum}`;
           
-          console.log('\n✨ Search completed! Browser will stay open for 15 seconds...\n');
-          await page.waitForTimeout(15000);
+          await page.goto(resultsUrl);
+          
+          console.log('✨ Search completed! Review the results table...\n');
+          console.log('📌 Browser will stay open. Close it when done.\n');
+          
+          // Keep browser open - don't close automatically
+          await new Promise(() => {}); // Wait forever until manually closed
           
           break;
         } else {
           console.log(`   ❌ "${processName}" not found on page ${pageNum}`);
         }
 
-        // Small delay between pages
-        await page.waitForTimeout(500);
+        // Removed delay between pages for faster execution
 
       } catch (err) {
         console.log(`   ⚠️  Error on page ${pageNum}: ${err.message}`);

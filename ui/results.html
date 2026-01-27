@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Process Details - Results</title>
+  <style>
+    :root{
+      --bg1: #667eea;
+      --bg2: #764ba2;
+      --accent: #10b981;
+      --accent2: #3b82f6;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: system-ui, -apple-system, Roboto, "Segoe UI", Arial; 
+      background: linear-gradient(135deg, var(--bg1), var(--bg2)); 
+      min-height: 100vh;
+      padding: 2rem;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+    .header {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      padding: 2rem;
+      color: white;
+      text-align: center;
+    }
+    .header h1 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+    .header p {
+      opacity: 0.9;
+      font-size: 1rem;
+    }
+    .content {
+      padding: 2rem;
+    }
+    .process-name {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      color: white;
+      padding: 1.5rem;
+      border-radius: 12px;
+      margin-bottom: 2rem;
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: bold;
+      box-shadow: 0 4px 15px rgba(245, 87, 108, 0.3);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 2rem;
+    }
+    thead {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+    }
+    thead th {
+      padding: 1rem;
+      text-align: left;
+      font-weight: 600;
+      font-size: 0.95rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    tbody tr {
+      border-bottom: 1px solid #e5e7eb;
+      transition: background 0.2s;
+    }
+    tbody tr:hover {
+      background: #f9fafb;
+    }
+    tbody td {
+      padding: 1rem;
+      vertical-align: top;
+    }
+    tbody td:first-child {
+      font-weight: 600;
+      color: #4b5563;
+      width: 30%;
+    }
+    tbody td:last-child {
+      color: #1f2937;
+      word-break: break-word;
+    }
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .badge-success {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    .badge-warning {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    .actions {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      padding: 1rem 2rem 2rem;
+    }
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+    }
+    .btn-secondary {
+      background: #f3f4f6;
+      color: #374151;
+    }
+    .icon {
+      margin-right: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🔍 Process Information</h1>
+      <p>Detailed information extracted from ProcessChecker.com</p>
+    </div>
+    
+    <div class="content">
+      <div class="process-name" id="processName">
+        Loading...
+      </div>
+      
+      <table>
+        <thead>
+          <tr>
+            <th>Property</th>
+            <th>Value</th>
+          </tr>
+        </thead>
+        <tbody id="dataTable">
+          <tr>
+            <td>📁 File Path</td>
+            <td id="filePath">Loading...</td>
+          </tr>
+          <tr>
+            <td>📦 Product Name</td>
+            <td id="product">Loading...</td>
+          </tr>
+          <tr>
+            <td>🏢 Company/Vendor</td>
+            <td id="company">Loading...</td>
+          </tr>
+          <tr>
+            <td>📝 Description</td>
+            <td id="description">Loading...</td>
+          </tr>
+          <tr>
+            <td>🔢 Version</td>
+            <td id="version">Loading...</td>
+          </tr>
+          <tr>
+            <td>🔗 Source URL</td>
+            <td id="url">Loading...</td>
+          </tr>
+          <tr>
+            <td>📄 Found on Page</td>
+            <td id="page">Loading...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    
+    <div class="actions">
+      <a href="index.html" class="btn btn-secondary">
+        <span class="icon">⬅️</span>Search Another
+      </a>
+      <button class="btn btn-primary" onclick="window.print()">
+        <span class="icon">🖨️</span>Print Results
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // Get data from URL parameters or localStorage
+    function getResultData() {
+      const params = new URLSearchParams(window.location.search);
+      
+      return {
+        processName: params.get('name') || 'Unknown Process',
+        filePath: params.get('filePath') || 'Not found',
+        product: params.get('product') || 'Not found',
+        company: params.get('company') || 'Not found',
+        description: params.get('description') || 'Not found',
+        version: params.get('version') || 'Not found',
+        url: params.get('url') || '#',
+        page: params.get('page') || 'Unknown'
+      };
+    }
+
+    // Display the data
+    function displayResults() {
+      const data = getResultData();
+      
+      document.getElementById('processName').textContent = data.processName;
+      document.getElementById('filePath').textContent = data.filePath;
+      document.getElementById('product').textContent = data.product;
+      document.getElementById('company').textContent = data.company;
+      document.getElementById('description').textContent = data.description;
+      document.getElementById('version').textContent = data.version;
+      document.getElementById('page').innerHTML = `<span class="badge badge-success">Page ${data.page}</span>`;
+      
+      const urlCell = document.getElementById('url');
+      if (data.url !== '#') {
+        urlCell.innerHTML = `<a href="${data.url}" target="_blank" style="color: #3b82f6; text-decoration: underline;">${data.url}</a>`;
+      } else {
+        urlCell.textContent = 'Not available';
+      }
+    }
+
+    // Load data when page loads
+    window.addEventListener('DOMContentLoaded', displayResults);
+  </script>
+</body>
+</html>
