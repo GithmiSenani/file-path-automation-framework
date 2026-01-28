@@ -17,9 +17,11 @@ app.get('/', (req, res) => {
 
 // API endpoint to trigger the search
 app.post('/api/search', (req, res) => {
+  console.log('📥 Received request:', req.body);
   const processName = req.body.processName;
 
   if (!processName) {
+    console.log('❌ No process name provided');
     return res.status(400).json({ error: 'Process name is required' });
   }
 
