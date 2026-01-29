@@ -43,16 +43,16 @@
       font-size: 1rem;
     }
     .content {
-      padding: 2rem;
+      padding: 0.5rem 2rem 2rem 2rem;
     }
     .process-name {
       background: linear-gradient(135deg, #e7f3ff, #f0f8ff);
       color: #0d6efd;
-      padding: 1.5rem;
+      padding: 0.75rem;
       border-radius: 12px;
-      margin-bottom: 2rem;
+      margin-bottom: 1rem;
       text-align: center;
-      font-size: 1.5rem;
+      font-size: 1.2rem;
       font-weight: bold;
       border: 2px solid #cfe2ff;
     }
@@ -158,29 +158,45 @@
       margin-right: 0.5rem;
     }
     .info-stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1rem;
-      margin-bottom: 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem;
+      background: #f8f9fa;
+      border-bottom: 1px solid #dee2e6;
+      flex-wrap: wrap;
+      gap: 1.5rem;
     }
-    .stat-card {
-      background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-      padding: 1rem;
-      border-radius: 10px;
-      border: 1px solid #dee2e6;
-      text-align: center;
+    .stat-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
     .stat-label {
-      font-size: 0.85rem;
+      font-size: 0.9rem;
       color: #6c757d;
-      font-weight: 600;
-      text-transform: uppercase;
-      margin-bottom: 0.5rem;
+      font-weight: 500;
     }
     .stat-value {
-      font-size: 1.5rem;
-      color: #0d6efd;
-      font-weight: bold;
+      font-size: 0.95rem;
+      color: #212529;
+      font-weight: 600;
+    }
+    .search-again-btn {
+      padding: 0.5rem 1rem;
+      background: #0d6efd;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      transition: background 0.2s;
+    }
+    .search-again-btn:hover {
+      background: #0b5ed7;
     }
   </style>
 </head>
@@ -191,29 +207,26 @@
       <p>Detailed information extracted from ProcessChecker.com</p>
     </div>
     
+    <!-- Statistics Bar -->
+    <div class="info-stats">
+      <div class="stat-item">
+        <span class="stat-label">Total Paths:</span>
+        <span class="stat-value" id="totalPaths">-</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Search Time:</span>
+        <span class="stat-value" id="searchTime">-</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Date:</span>
+        <span class="stat-value" id="searchDate">-</span>
+      </div>
+      <button class="search-again-btn" onclick="window.close()">⬅️ Search Another</button>
+    </div>
+    
     <div class="content">
       <div class="process-name" id="processName">
         Loading...
-      </div>
-      
-      <!-- Statistics Cards -->
-      <div class="info-stats">
-        <div class="stat-card">
-          <div class="stat-label">Total File Paths</div>
-          <div class="stat-value" id="totalPaths">-</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Search Time</div>
-          <div class="stat-value" id="searchTime">-</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Found on Page</div>
-          <div class="stat-value" id="pageNumber">-</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Search Date</div>
-          <div class="stat-value" id="searchDate" style="font-size: 1rem;">-</div>
-        </div>
       </div>
       
       <table>
@@ -231,15 +244,6 @@
           <!-- Rows will be dynamically populated by JavaScript -->
         </tbody>
       </table>
-    </div>
-    
-    <div class="actions">
-      <a href="index.html" class="btn btn-secondary">
-        <span class="icon">⬅️</span>Search Another
-      </a>
-      <button class="btn btn-primary" onclick="window.print()">
-        <span class="icon">🖨️</span>Print Results
-      </button>
     </div>
   </div>
 
@@ -268,7 +272,6 @@
       // Update statistics
       document.getElementById('totalPaths').textContent = result.totalPaths;
       document.getElementById('searchTime').textContent = result.searchTime + 's';
-      document.getElementById('pageNumber').textContent = result.page;
       document.getElementById('searchDate').textContent = result.searchDate;
       
       // Clear the table body
