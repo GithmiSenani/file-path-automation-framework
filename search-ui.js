@@ -22,9 +22,9 @@ app.post('/api/search', async (req, res) => {
   // Send immediate response
   res.json({ success: true, message: 'Starting search...' });
 
-  // Import and run the automation
+  // Import and run the FAST automation
   const { exec } = require('child_process');
-  const command = `node automate-search.js "${processName}"`;
+  const command = `node automate-search-fast.js "${processName}"`;
   
   exec(command, (error, stdout, stderr) => {
     if (error) {

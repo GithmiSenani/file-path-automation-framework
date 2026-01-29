@@ -18,6 +18,10 @@ if (!processName) {
 
 console.log(`\nStarting SMART search for: "${processName}"\n`);
 
+// Track start time
+const startTime = Date.now();
+const searchStartDate = new Date().toLocaleString();
+
 (async () => {
   // Launch browser
   console.log('Launching browser...');
@@ -331,16 +335,24 @@ console.log(`\nStarting SMART search for: "${processName}"\n`);
         
         // Open results page
         console.log('\nOpening results page...\n');
+        
+        // Calculate search time
+        const endTime = Date.now();
+        const searchTime = ((endTime - startTime) / 1000).toFixed(2); // in seconds
+        
         const resultsPath = path.join(__dirname, 'ui', 'results.html');
         const resultsUrl = `file:///${resultsPath.replace(/\\/g, '/')}?` + 
           `name=${encodeURIComponent(matchedLink.text)}` +
           `&data=${encodeURIComponent(JSON.stringify(extractedData))}` +
           `&url=${encodeURIComponent(page.url())}` +
-          `&page=${finalPageNum}`;
+          `&page=${finalPageNum}` +
+          `&searchTime=${searchTime}` +
+          `&searchDate=${encodeURIComponent(searchStartDate)}` +
+          `&totalPaths=${extractedData.length}`;
         
         await page.goto(resultsUrl);
         
-        console.log('Search completed! Review the results table...\n');
+        console.log(`Search completed in ${searchTime} seconds!`);
         console.log('Browser will stay open. Close it when done.\n');
         
         // Keep browser open
