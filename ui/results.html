@@ -16,10 +16,11 @@
       font-family: system-ui, -apple-system, Roboto, "Segoe UI", Arial; 
       background: linear-gradient(135deg, #ffffff, #f8f9fa); 
       min-height: 100vh;
-      padding: 2rem;
+      padding: 1rem;
     }
     .container {
-      max-width: 1100px;
+      max-width: 95%;
+      width: 100%;
       margin: 0 auto;
       background: white;
       border-radius: 16px;
@@ -43,10 +44,11 @@
       font-size: 1rem;
     }
     .content {
-      padding: 0.5rem 2rem 2rem 2rem;
+      padding: 0.5rem 1rem 2rem 1rem;
+      overflow-x: auto;
     }
     .process-name {
-      background: linear-gradient(135deg, #e7f3ff, #f0f8ff);
+      background: linear-gradient(135deg, #e7f3ff, #cfe2ff);
       color: #0d6efd;
       padding: 0.75rem;
       border-radius: 12px;
@@ -54,10 +56,11 @@
       text-align: center;
       font-size: 1.2rem;
       font-weight: bold;
-      border: 2px solid #cfe2ff;
+      border: 2px solid #9ec5fe;
     }
     table {
       width: 100%;
+      min-width: 1200px;
       border-collapse: collapse;
       margin-bottom: 2rem;
       background: white;
@@ -88,11 +91,12 @@
       background: #f8f9fa;
     }
     tbody td {
-      padding: 1rem;
+      padding: 0.75rem;
       vertical-align: top;
       word-break: break-word;
       color: #212529;
       border-right: 1px solid #f1f3f5;
+      max-width: 400px;
     }
     tbody td:last-child {
       border-right: none;
@@ -198,6 +202,78 @@
     .search-again-btn:hover {
       background: #0b5ed7;
     }
+    .export-csv-btn {
+      padding: 0.5rem 1rem;
+      background: #198754;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      transition: background 0.2s;
+    }
+    .export-csv-btn:hover {
+      background: #157347;
+    }
+    .button-group {
+      display: flex;
+      gap: 0.75rem;
+    }
+    .copy-icon {
+      cursor: pointer;
+      margin-left: 0.5rem;
+      color: #6c757d;
+      font-size: 0.9rem;
+      transition: color 0.2s;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    .copy-icon:hover {
+      color: #0d6efd;
+    }
+    .copy-icon:active {
+      color: #0a58ca;
+    }
+    .cell-with-copy {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+    .cell-content {
+      flex: 1;
+      word-break: break-word;
+    }
+    
+    /* Responsive styles */
+    @media (min-width: 1600px) {
+      .container {
+        max-width: 98%;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      body {
+        padding: 0.5rem;
+      }
+      .content {
+        padding: 0.5rem;
+      }
+      table {
+        min-width: 900px;
+      }
+      tbody td {
+        padding: 0.5rem;
+        font-size: 0.85rem;
+      }
+      thead th {
+        padding: 0.5rem;
+        font-size: 0.8rem;
+      }
+    }
   </style>
 </head>
 <body>
@@ -221,7 +297,10 @@
         <span class="stat-label">Date:</span>
         <span class="stat-value" id="searchDate">-</span>
       </div>
-      <button class="search-again-btn" onclick="window.close()">⬅️ Search Another</button>
+      <div class="button-group">
+        <button class="export-csv-btn" onclick="exportToCSV()">📊 Export CSV</button>
+        <button class="search-again-btn" onclick="goBackToSearch()">🔍 Search Another</button>
+      </div>
     </div>
     
     <div class="content">
@@ -288,14 +367,26 @@
           tdProcess.textContent = result.processName;
           tr.appendChild(tdProcess);
           
-          // Path
+          // Path with copy icon
           const tdPath = document.createElement('td');
-          tdPath.textContent = row.filePath || 'Not found';
+          const pathText = row.filePath || 'Not found';
+          tdPath.innerHTML = `
+            <div class="cell-with-copy">
+              <span class="cell-content">${pathText}</span>
+              <span class="copy-icon" onclick="copyToClipboard('${pathText.replace(/'/g, "\\'")}', this)" title="Copy to clipboard">📋</span>
+            </div>
+          `;
           tr.appendChild(tdPath);
           
-          // Product Name
+          // Product Name with copy icon
           const tdProduct = document.createElement('td');
-          tdProduct.textContent = row.product || 'Not found';
+          const productText = row.product || 'Not found';
+          tdProduct.innerHTML = `
+            <div class="cell-with-copy">
+              <span class="cell-content">${productText}</span>
+              <span class="copy-icon" onclick="copyToClipboard('${productText.replace(/'/g, "\\'")}', this)" title="Copy to clipboard">📋</span>
+            </div>
+          `;
           tr.appendChild(tdProduct);
           
           // Vendor
@@ -303,10 +394,17 @@
           tdVendor.textContent = row.vendor || 'Not found';
           tr.appendChild(tdVendor);
           
-          // Source URL (only add once for first row)
+          // Source URL with copy icon
           const tdUrl = document.createElement('td');
           if (result.url !== '#') {
-            tdUrl.innerHTML = `<a href="${result.url}" target="_blank" style="color: #0d6efd; text-decoration: underline;">${result.url}</a>`;
+            tdUrl.innerHTML = `
+              <div class="cell-with-copy">
+                <span class="cell-content">
+                  <a href="${result.url}" target="_blank" style="color: #0d6efd; text-decoration: underline;">${result.url}</a>
+                </span>
+                <span class="copy-icon" onclick="copyToClipboard('${result.url.replace(/'/g, "\\'")}', this)" title="Copy to clipboard">📋</span>
+              </div>
+            `;
           } else {
             tdUrl.textContent = 'Not available';
           }
@@ -325,6 +423,68 @@
         tr.innerHTML = '<td colspan="6" style="text-align: center; color: #6c757d;">No data found</td>';
         tbody.appendChild(tr);
       }
+    }
+
+    // Function to go back to search
+    function goBackToSearch() {
+      window.location.href = 'http://localhost:3000/search.html';
+    }
+
+    // Function to export data to CSV
+    function exportToCSV() {
+      const result = getResultData();
+      
+      if (!result.data || result.data.length === 0) {
+        alert('No data to export');
+        return;
+      }
+
+      // Create CSV content
+      const headers = ['Process Name', 'Path', 'Product Name', 'Vendor', 'Source URL', 'Found on Page'];
+      let csvContent = headers.join(',') + '\n';
+
+      result.data.forEach((row) => {
+        const csvRow = [
+          `"${result.processName}"`,
+          `"${(row.filePath || 'Not found').replace(/"/g, '""')}"`,
+          `"${(row.product || 'Not found').replace(/"/g, '""')}"`,
+          `"${(row.vendor || 'Not found').replace(/"/g, '""')}"`,
+          `"${result.url}"`,
+          `"Page ${result.page}"`
+        ];
+        csvContent += csvRow.join(',') + '\n';
+      });
+
+      // Create blob and download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `${result.processName.replace('.exe', '')}_process_data.csv`);
+      link.style.visibility = 'hidden';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // Function to copy text to clipboard
+    function copyToClipboard(text, iconElement) {
+      navigator.clipboard.writeText(text).then(() => {
+        // Visual feedback - change icon temporarily
+        const originalText = iconElement.textContent;
+        iconElement.textContent = '✅';
+        iconElement.style.color = '#198754';
+        
+        setTimeout(() => {
+          iconElement.textContent = originalText;
+          iconElement.style.color = '';
+        }, 1500);
+      }).catch(err => {
+        console.error('Failed to copy:', err);
+        alert('Failed to copy to clipboard');
+      });
     }
 
     // Load data when page loads
