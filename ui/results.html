@@ -370,23 +370,37 @@
           // Path with copy icon
           const tdPath = document.createElement('td');
           const pathText = row.filePath || 'Not found';
-          tdPath.innerHTML = `
-            <div class="cell-with-copy">
-              <span class="cell-content">${pathText}</span>
-              <span class="copy-icon" onclick="copyToClipboard('${pathText.replace(/'/g, "\\'")}', this)" title="Copy to clipboard">📋</span>
-            </div>
-          `;
+          const pathDiv = document.createElement('div');
+          pathDiv.className = 'cell-with-copy';
+          const pathContent = document.createElement('span');
+          pathContent.className = 'cell-content';
+          pathContent.textContent = pathText;
+          const pathCopyIcon = document.createElement('span');
+          pathCopyIcon.className = 'copy-icon';
+          pathCopyIcon.textContent = '📋';
+          pathCopyIcon.title = 'Copy to clipboard';
+          pathCopyIcon.onclick = function() { copyToClipboard(pathText, this); };
+          pathDiv.appendChild(pathContent);
+          pathDiv.appendChild(pathCopyIcon);
+          tdPath.appendChild(pathDiv);
           tr.appendChild(tdPath);
           
           // Product Name with copy icon
           const tdProduct = document.createElement('td');
           const productText = row.product || 'Not found';
-          tdProduct.innerHTML = `
-            <div class="cell-with-copy">
-              <span class="cell-content">${productText}</span>
-              <span class="copy-icon" onclick="copyToClipboard('${productText.replace(/'/g, "\\'")}', this)" title="Copy to clipboard">📋</span>
-            </div>
-          `;
+          const productDiv = document.createElement('div');
+          productDiv.className = 'cell-with-copy';
+          const productContent = document.createElement('span');
+          productContent.className = 'cell-content';
+          productContent.textContent = productText;
+          const productCopyIcon = document.createElement('span');
+          productCopyIcon.className = 'copy-icon';
+          productCopyIcon.textContent = '📋';
+          productCopyIcon.title = 'Copy to clipboard';
+          productCopyIcon.onclick = function() { copyToClipboard(productText, this); };
+          productDiv.appendChild(productContent);
+          productDiv.appendChild(productCopyIcon);
+          tdProduct.appendChild(productDiv);
           tr.appendChild(tdProduct);
           
           // Vendor
@@ -397,14 +411,25 @@
           // Source URL with copy icon
           const tdUrl = document.createElement('td');
           if (result.url !== '#') {
-            tdUrl.innerHTML = `
-              <div class="cell-with-copy">
-                <span class="cell-content">
-                  <a href="${result.url}" target="_blank" style="color: #0d6efd; text-decoration: underline;">${result.url}</a>
-                </span>
-                <span class="copy-icon" onclick="copyToClipboard('${result.url.replace(/'/g, "\\'")}', this)" title="Copy to clipboard">📋</span>
-              </div>
-            `;
+            const urlDiv = document.createElement('div');
+            urlDiv.className = 'cell-with-copy';
+            const urlContent = document.createElement('span');
+            urlContent.className = 'cell-content';
+            const urlLink = document.createElement('a');
+            urlLink.href = result.url;
+            urlLink.target = '_blank';
+            urlLink.style.color = '#0d6efd';
+            urlLink.style.textDecoration = 'underline';
+            urlLink.textContent = result.url;
+            urlContent.appendChild(urlLink);
+            const urlCopyIcon = document.createElement('span');
+            urlCopyIcon.className = 'copy-icon';
+            urlCopyIcon.textContent = '📋';
+            urlCopyIcon.title = 'Copy to clipboard';
+            urlCopyIcon.onclick = function() { copyToClipboard(result.url, this); };
+            urlDiv.appendChild(urlContent);
+            urlDiv.appendChild(urlCopyIcon);
+            tdUrl.appendChild(urlDiv);
           } else {
             tdUrl.textContent = 'Not available';
           }
@@ -432,45 +457,81 @@
 
     // Function to export data to CSV
     function exportToCSV() {
-      const result = getResultData();
-      
-      if (!result.data || result.data.length === 0) {
-        alert('No data to export');
-        return;
+      try {
+        const result = getResultData();
+        
+        if (!result.data || result.data.length === 0) {
+          alert('No data to export');
+          return;
+        }
+
+        // Create CSV content with BOM for Excel compatibility
+        const headers = ['Process Name', 'Path', 'Product Name', 'Vendor', 'Source URL', 'Found on Page'];
+        let csvContent = '\uFEFF' + headers.join(',') + '\n';
+
+        result.data.forEach((row) => {
+          const csvRow = [
+            `"${(result.processName || '').replace(/"/g, '""')}"`,
+            `"${(row.filePath || 'Not found').replace(/"/g, '""')}"`,
+            `"${(row.product || 'Not found').replace(/"/g, '""')}"`,
+            `"${(row.vendor || 'Not found').replace(/"/g, '""')}"`,
+            `"${(result.url || '').replace(/"/g, '""')}"`,
+            `"Page ${result.page || 'Unknown'}"`
+          ];
+          csvContent += csvRow.join(',') + '\n';
+        });
+
+        // Create blob and download
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        
+        link.setAttribute('href', url);
+        link.setAttribute('download', `${result.processName.replace('.exe', '')}_process_data.csv`);
+        link.style.visibility = 'hidden';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Clean up
+        setTimeout(() => URL.revokeObjectURL(url), 100);
+        
+        console.log('CSV export successful');
+      } catch (error) {
+        console.error('CSV export error:', error);
+        alert('Failed to export CSV: ' + error.message);
       }
-
-      // Create CSV content
-      const headers = ['Process Name', 'Path', 'Product Name', 'Vendor', 'Source URL', 'Found on Page'];
-      let csvContent = headers.join(',') + '\n';
-
-      result.data.forEach((row) => {
-        const csvRow = [
-          `"${result.processName}"`,
-          `"${(row.filePath || 'Not found').replace(/"/g, '""')}"`,
-          `"${(row.product || 'Not found').replace(/"/g, '""')}"`,
-          `"${(row.vendor || 'Not found').replace(/"/g, '""')}"`,
-          `"${result.url}"`,
-          `"Page ${result.page}"`
-        ];
-        csvContent += csvRow.join(',') + '\n';
-      });
-
-      // Create blob and download
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      
-      link.setAttribute('href', url);
-      link.setAttribute('download', `${result.processName.replace('.exe', '')}_process_data.csv`);
-      link.style.visibility = 'hidden';
-      
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
     }
 
     // Function to copy text to clipboard
     function copyToClipboard(text, iconElement) {
+      if (!navigator.clipboard) {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+          document.execCommand('copy');
+          // Visual feedback
+          const originalText = iconElement.textContent;
+          iconElement.textContent = '✅';
+          iconElement.style.color = '#198754';
+          setTimeout(() => {
+            iconElement.textContent = originalText;
+            iconElement.style.color = '';
+          }, 1500);
+        } catch (err) {
+          console.error('Fallback copy failed:', err);
+          alert('Failed to copy to clipboard');
+        }
+        document.body.removeChild(textArea);
+        return;
+      }
+
       navigator.clipboard.writeText(text).then(() => {
         // Visual feedback - change icon temporarily
         const originalText = iconElement.textContent;
@@ -481,9 +542,10 @@
           iconElement.textContent = originalText;
           iconElement.style.color = '';
         }, 1500);
+        console.log('Copied to clipboard:', text.substring(0, 50) + '...');
       }).catch(err => {
         console.error('Failed to copy:', err);
-        alert('Failed to copy to clipboard');
+        alert('Failed to copy to clipboard: ' + err.message);
       });
     }
 
