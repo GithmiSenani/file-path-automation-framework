@@ -18,7 +18,6 @@
     "open-ui-test": "npx playwright test tests/process-checker.spec.ts --headed"
   },
   "dependencies": {
-    "express": "^4.18.2",
     "playwright": "^1.57.0"
   },
   "devDependencies": {

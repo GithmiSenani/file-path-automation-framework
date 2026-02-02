@@ -16,14 +16,14 @@
       font-family: system-ui, -apple-system, Roboto, "Segoe UI", Arial; 
       background: linear-gradient(135deg, #ffffff, #f8f9fa); 
       min-height: 100vh;
-      padding: 1rem;
+      padding: 0.5rem;
     }
     .container {
-      max-width: 95%;
+      max-width: 100%;
       width: 100%;
       margin: 0 auto;
       background: white;
-      border-radius: 16px;
+      border-radius: 8px;
       box-shadow: 0 2px 10px rgba(0,0,0,0.08);
       overflow: hidden;
       border: 1px solid #e9ecef;
@@ -60,10 +60,11 @@
     }
     table {
       width: 100%;
-      min-width: 1200px;
+      min-width: 1000px;
       border-collapse: collapse;
       margin-bottom: 2rem;
       background: white;
+      table-layout: auto;
     }
     thead {
       background: linear-gradient(135deg, #f8f9fa, #e9ecef);
@@ -96,7 +97,6 @@
       word-break: break-word;
       color: #212529;
       border-right: 1px solid #f1f3f5;
-      max-width: 400px;
     }
     tbody td:last-child {
       border-right: none;
@@ -251,13 +251,22 @@
     /* Responsive styles */
     @media (min-width: 1600px) {
       .container {
-        max-width: 98%;
+        max-width: 100%;
+      }
+      body {
+        padding: 0.5rem;
+      }
+    }
+    
+    @media (min-width: 1200px) {
+      .container {
+        max-width: 100%;
       }
     }
     
     @media (max-width: 768px) {
       body {
-        padding: 0.5rem;
+        padding: 0.25rem;
       }
       .content {
         padding: 0.5rem;
@@ -467,27 +476,32 @@
 
         // Create CSV content with BOM for Excel compatibility
         const headers = ['Process Name', 'Path', 'Product Name', 'Vendor', 'Source URL', 'Found on Page'];
-        let csvContent = '\uFEFF' + headers.join(',') + '\n';
+        let csvContent = headers.join(',') + '\r\n';
 
         result.data.forEach((row) => {
           const csvRow = [
             `"${(result.processName || '').replace(/"/g, '""')}"`,
-            `"${(row.filePath || 'Not found').replace(/"/g, '""')}"`,
-            `"${(row.product || 'Not found').replace(/"/g, '""')}"`,
-            `"${(row.vendor || 'Not found').replace(/"/g, '""')}"`,
+            `"${(row.filePath || 'Not found').replace(/"/g, '""').replace(/\n/g, ' ').replace(/\r/g, '')}"`,
+            `"${(row.product || 'Not found').replace(/"/g, '""').replace(/\n/g, ' ').replace(/\r/g, '')}"`,
+            `"${(row.vendor || 'Not found').replace(/"/g, '""').replace(/\n/g, ' ').replace(/\r/g, '')}"`,
             `"${(result.url || '').replace(/"/g, '""')}"`,
             `"Page ${result.page || 'Unknown'}"`
           ];
-          csvContent += csvRow.join(',') + '\n';
+          csvContent += csvRow.join(',') + '\r\n';
         });
 
+        // Add BOM for Excel
+        const BOM = '\uFEFF';
+        const csvWithBOM = BOM + csvContent;
+
         // Create blob and download
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const blob = new Blob([csvWithBOM], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
         
         link.setAttribute('href', url);
-        link.setAttribute('download', `${result.processName.replace('.exe', '')}_process_data.csv`);
+        const filename = (result.processName || 'process').replace('.exe', '').replace(/[^a-zA-Z0-9]/g, '_');
+        link.setAttribute('download', `${filename}_data.csv`);
         link.style.visibility = 'hidden';
         
         document.body.appendChild(link);
