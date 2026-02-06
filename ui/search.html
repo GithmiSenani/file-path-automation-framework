@@ -85,27 +85,9 @@
       transform: translateY(-2px);
       box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
     }
-    .btn-secondary {
-      background: #6c757d;
-      color: white;
-    }
-    .btn-secondary:hover:not(:disabled) {
-      background: #5a6268;
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
-    }
     .btn:disabled {
       opacity: 0.6;
       cursor: not-allowed;
-    }
-    .button-group {
-      display: flex;
-      gap: 1rem;
-      margin-top: 1.5rem;
-    }
-    .button-group .btn {
-      flex: 1;
-      width: 100%;
     }
     .status {
       margin-top: 1.5rem;
@@ -175,10 +157,6 @@
       <button type="submit" class="btn btn-primary" id="searchBtn">
         <span id="btnText">🚀 Search Process</span>
       </button>
-
-      <button type="button" class="btn btn-secondary" id="cancelBtn" style="display: none;">
-        <span id="cancelBtnText">✖️ Cancel Search</span>
-      </button>
     </form>
 
     <div class="status" id="status"></div>
@@ -189,31 +167,7 @@
     const processInput = document.getElementById('processName');
     const searchBtn = document.getElementById('searchBtn');
     const btnText = document.getElementById('btnText');
-    const cancelBtn = document.getElementById('cancelBtn');
-    const cancelBtnText = document.getElementById('cancelBtnText');
     const statusDiv = document.getElementById('status');
-    let isSearching = false;
-
-    // Clear input and reset form
-    function resetForm() {
-      processInput.value = '';
-      searchBtn.disabled = false;
-      cancelBtn.style.display = 'none';
-      btnText.innerHTML = '🚀 Search Process';
-      statusDiv.classList.remove('show', 'loading', 'success', 'error');
-      isSearching = false;
-      processInput.focus();
-    }
-
-    // Cancel button handler
-    cancelBtn.addEventListener('click', function() {
-      isSearching = false;
-      resetForm();
-      showStatus('Search cancelled', 'error');
-      setTimeout(() => {
-        statusDiv.classList.remove('show');
-      }, 2000);
-    });
 
     form.addEventListener('submit', async function (e) {
       e.preventDefault();
@@ -229,11 +183,8 @@
         processName += '.exe';
       }
 
-      // Disable form and show cancel button
-      isSearching = true;
-      searchBtn.style.display = 'none';
-      cancelBtn.style.display = 'flex';
-      processInput.disabled = true;
+      // Disable form
+      searchBtn.disabled = true;
       btnText.innerHTML = '<span class="spinner"></span> Searching...';
       showStatus('Starting automated search... Please wait, this may take 30-60 seconds.', 'loading');
 
@@ -253,17 +204,19 @@
           
           // Reset form after 3 seconds
           setTimeout(() => {
-            if (isSearching) {
-              resetForm();
-            }
+            searchBtn.disabled = false;
+            btnText.textContent = '🚀 Search Process';
+            processInput.value = '';
             statusDiv.classList.remove('show');
+            processInput.focus();
           }, 3000);
         } else {
           throw new Error(data.error || 'Search failed');
         }
       } catch (error) {
         showStatus(`❌ Error: ${error.message}`, 'error');
-        resetForm();
+        searchBtn.disabled = false;
+        btnText.textContent = '🚀 Search Process';
       }
     });
 
