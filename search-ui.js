@@ -599,12 +599,12 @@ async function startApp() {
     console.log('🌐 Opening Chrome browser...\n');
 
     // Launch Chrome browser with the search page
-    const browser = await chromium.launch({ 
+    browser = await chromium.launch({ 
       headless: false,
       channel: 'chrome'
     });
     
-    const context = await browser.newContext();
+    context = await browser.newContext();
     const page = await context.newPage();
     
     await page.goto(`http://localhost:${PORT}/search.html`);
