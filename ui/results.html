@@ -496,7 +496,7 @@
         }
 
         // Create CSV content with BOM for Excel compatibility
-        const headers = ['Process Name', 'Path', 'Product Name', 'Vendor', 'Source URL', 'Found on Page'];
+        const headers = ['Process Name', 'File Path', 'Product Name', 'Vendor', 'Source URL', 'Found on Page'];
         let csvContent = headers.join(',') + '\r\n';
 
         result.data.forEach((row) => {
