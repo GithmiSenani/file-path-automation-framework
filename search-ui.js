@@ -405,7 +405,9 @@ const server = http.createServer((req, res) => {
   }
   
   // Serve static files
-  let filePath = path.join(__dirname, 'ui', req.url === '/' ? 'search.html' : req.url);
+  // Clean up the URL by removing query string
+  const cleanUrl = req.url.split('?')[0];
+  let filePath = path.join(__dirname, 'ui', cleanUrl === '/' ? 'search.html' : cleanUrl);
   
   // Get file extension
   const extname = String(path.extname(filePath)).toLowerCase();
