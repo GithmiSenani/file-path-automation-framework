@@ -366,6 +366,27 @@
       const tbody = document.getElementById('dataTable');
       tbody.innerHTML = '';
       
+      // Check if it's a "not found" result
+      const isNotFound = result.totalPaths === '0' || 
+                        (result.data && result.data.length > 0 && 
+                         result.data[0].filePath.toLowerCase().includes('not found'));
+      
+      if (isNotFound) {
+        // Show clean error message matching UI style
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td colspan="6" style="text-align: center; padding: 4rem 2rem; background: #f8f9fa;">
+            <div style="font-size: 4rem; margin-bottom: 1.5rem;">🔍</div>
+            <h2 style="color: #495057; margin-bottom: 1rem; font-size: 1.8rem;">Process Not Found</h2>
+            <p style="color: #6c757d; font-size: 1rem; line-height: 1.6; max-width: 500px; margin: 0 auto;">
+              The process <strong style="color: #0d6efd;">"${result.processName}"</strong> was not found in the ProcessChecker database.
+            </p>
+          </td>
+        `;
+        tbody.appendChild(tr);
+        return;
+      }
+      
       // If we have data, create rows
       if (result.data && result.data.length > 0) {
         result.data.forEach((row) => {

@@ -73,10 +73,162 @@ const server = http.createServer((req, res) => {
     if (error) {
       if (error.code === 'ENOENT') {
         res.writeHead(404, { 'Content-Type': 'text/html' });
-        res.end('<h1>404 - File Not Found</h1>', 'utf-8');
+        const html404 = `
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>404 - Not Found</title>
+            <style>
+              * { margin: 0; padding: 0; box-sizing: border-box; }
+              body {
+                font-family: system-ui, -apple-system, Roboto, "Segoe UI", Arial;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 2rem;
+              }
+              .container {
+                background: white;
+                border-radius: 20px;
+                padding: 3rem;
+                text-align: center;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                max-width: 500px;
+              }
+              .error-code {
+                font-size: 6rem;
+                font-weight: bold;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                margin-bottom: 1rem;
+              }
+              h1 {
+                font-size: 2rem;
+                color: #333;
+                margin-bottom: 1rem;
+              }
+              p {
+                color: #666;
+                font-size: 1.1rem;
+                margin-bottom: 2rem;
+                line-height: 1.6;
+              }
+              .btn {
+                display: inline-block;
+                padding: 1rem 2rem;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                text-decoration: none;
+                border-radius: 10px;
+                font-weight: 600;
+                transition: transform 0.2s;
+              }
+              .btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+              }
+              .emoji {
+                font-size: 4rem;
+                margin-bottom: 1rem;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="emoji">🔍</div>
+              <div class="error-code">404</div>
+              <h1>Page Not Found</h1>
+              <p>Oops! The page you're looking for doesn't exist.<br>Let's get you back on track.</p>
+              <a href="/" class="btn">🏠 Go to Home</a>
+            </div>
+          </body>
+          </html>
+        `;
+        res.end(html404, 'utf-8');
       } else {
-        res.writeHead(500);
-        res.end('Server Error: ' + error.code);
+        res.writeHead(500, { 'Content-Type': 'text/html' });
+        const html500 = `
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>500 - Server Error</title>
+            <style>
+              * { margin: 0; padding: 0; box-sizing: border-box; }
+              body {
+                font-family: system-ui, -apple-system, Roboto, "Segoe UI", Arial;
+                background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 2rem;
+              }
+              .container {
+                background: white;
+                border-radius: 20px;
+                padding: 3rem;
+                text-align: center;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                max-width: 500px;
+              }
+              .error-code {
+                font-size: 6rem;
+                font-weight: bold;
+                background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                margin-bottom: 1rem;
+              }
+              h1 {
+                font-size: 2rem;
+                color: #333;
+                margin-bottom: 1rem;
+              }
+              p {
+                color: #666;
+                font-size: 1.1rem;
+                margin-bottom: 2rem;
+                line-height: 1.6;
+              }
+              .btn {
+                display: inline-block;
+                padding: 1rem 2rem;
+                background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+                color: white;
+                text-decoration: none;
+                border-radius: 10px;
+                font-weight: 600;
+                transition: transform 0.2s;
+              }
+              .btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+              }
+              .emoji {
+                font-size: 4rem;
+                margin-bottom: 1rem;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="emoji">⚠️</div>
+              <div class="error-code">500</div>
+              <h1>Server Error</h1>
+              <p>Something went wrong on our end.<br>Please try again later.</p>
+              <a href="/" class="btn">🏠 Go to Home</a>
+            </div>
+          </body>
+          </html>
+        `;
+        res.end(html500, 'utf-8');
       }
     } else {
       res.writeHead(200, { 'Content-Type': contentType });

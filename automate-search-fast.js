@@ -100,9 +100,9 @@ const searchStartDate = new Date().toLocaleString();
 
     console.log(`   Range: "${pageInfo.first}" to "${pageInfo.last}"`);
 
-    // Check if it's on page 1
+    // Check if it's on page 1 - EXACT MATCH (case-sensitive)
     const exactMatch = pageInfo.links.find(link => 
-      link.text.toLowerCase() === processName.toLowerCase()
+      link.text === processName
     );
     
     if (exactMatch) {
@@ -194,9 +194,9 @@ const searchStartDate = new Date().toLocaleString();
 
           console.log(`   Range: "${pageInfo.first}" to "${pageInfo.last}"`);
 
-          // Check if exact match
+          // Check if exact match - CASE-SENSITIVE
           const exactMatch = pageInfo.links.find(link => 
-            link.text.toLowerCase() === processName.toLowerCase()
+            link.text === processName
           );
           
           if (exactMatch) {
@@ -248,13 +248,13 @@ const searchStartDate = new Date().toLocaleString();
 
       // Find exact match
       let matchedLink = links.find(link => 
-        link.text.toLowerCase() === processName.toLowerCase()
+        link.text === processName
       );
       
       // If no exact match, try partial
       if (!matchedLink) {
         matchedLink = links.find(link => 
-          link.text.toLowerCase().includes(processName.toLowerCase())
+          link.text.toLowerCase().includes(processName.toLowerCase().replace('.exe', ''))
         );
       }
 
@@ -358,12 +358,65 @@ const searchStartDate = new Date().toLocaleString();
         // Keep browser open
         await new Promise(() => {});
       } else {
+        // Process not found - show error page
         console.log(`\nProcess "${processName}" not found on page ${finalPageNum}`);
-        await browser.close();
+        console.log(`\nShowing processes on this page that might match:`);
+        const similarProcesses = links.filter(link => 
+          link.text.toLowerCase().includes('garmin') || 
+          link.text.toLowerCase().startsWith(processName.toLowerCase().substring(0, 5))
+        ).slice(0, 10);
+        similarProcesses.forEach((link, i) => {
+          console.log(`  ${i + 1}. ${link.text}`);
+        });
+        if (similarProcesses.length === 0) {
+          console.log(`\nFirst 10 processes on page ${finalPageNum}:`);
+          links.slice(0, 10).forEach((link, i) => {
+            console.log(`  ${i + 1}. ${link.text}`);
+          });
+        }
+        
+        // Show "Not Found" result page
+        const endTime = Date.now();
+        const searchTime = ((endTime - startTime) / 1000).toFixed(2);
+        const searchStartDate = new Date().toLocaleString();
+        
+        const notFoundData = JSON.stringify([{
+          filePath: 'Process not found',
+          product: 'N/A',
+          vendor: 'N/A'
+        }]);
+        
+        const resultsUrl = `http://localhost:3000/results.html?name=${encodeURIComponent(processName)}&data=${encodeURIComponent(notFoundData)}&url=${encodeURIComponent(finalUrl)}&page=${finalPageNum}&searchTime=${searchTime}&searchDate=${encodeURIComponent(searchStartDate)}&totalPaths=0`;
+        
+        await page.goto(resultsUrl);
+        console.log(`\nShowing "Not Found" results page`);
+        console.log('Browser will stay open. Close it when done.\n');
+        
+        // Keep browser open
+        await new Promise(() => {});
       }
     } else {
+      // Process not found at all - show error page
       console.log(`\nProcess "${processName}" not found`);
-      await browser.close();
+      
+      const endTime = Date.now();
+      const searchTime = ((endTime - startTime) / 1000).toFixed(2);
+      const searchStartDate = new Date().toLocaleString();
+      
+      const notFoundData = JSON.stringify([{
+        filePath: 'Process not found in database',
+        product: 'N/A',
+        vendor: 'N/A'
+      }]);
+      
+      const resultsUrl = `http://localhost:3000/results.html?name=${encodeURIComponent(processName)}&data=${encodeURIComponent(notFoundData)}&url=#&page=0&searchTime=${searchTime}&searchDate=${encodeURIComponent(searchStartDate)}&totalPaths=0`;
+      
+      await page.goto(resultsUrl);
+      console.log(`\nShowing "Not Found" results page`);
+      console.log('Browser will stay open. Close it when done.\n');
+      
+      // Keep browser open
+      await new Promise(() => {});
     }
 
   } catch (error) {
