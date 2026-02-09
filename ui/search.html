@@ -17,7 +17,7 @@
       justify-content: center;
     }
     .container {
-      max-width: 100%;
+      max-width: 600px;
       width: 100%;
       background: white;
       border-radius: 0;
@@ -27,12 +27,6 @@
       display: flex;
       flex-direction: column;
       justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-    }
-    .form-wrapper {
-      width: 100%;
-      max-width: 600px;
     }
     .header {
       text-align: center;
@@ -141,13 +135,12 @@
 </head>
 <body>
   <div class="container">
-    <div class="form-wrapper">
-      <div class="header">
-        <h1>🔍 Process Checker</h1>
-        <p>Automated search on ProcessChecker.com</p>
-      </div>
+    <div class="header">
+      <h1>🔍 Process Checker</h1>
+      <p>Automated search on ProcessChecker.com</p>
+    </div>
 
-      <form id="searchForm">
+    <form id="searchForm">
       <div class="form-group">
         <label for="processName">Process Name</label>
         <p style="font-size: 0.875rem; color: #6c757d; margin-bottom: 0.5rem;">Enter the process name (e.g., explorer, notepad, chrome)</p>
@@ -171,7 +164,6 @@
     </form>
 
     <div class="status" id="status"></div>
-    </div>
   </div>
 
   <script>

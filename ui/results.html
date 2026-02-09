@@ -56,7 +56,7 @@
       color: #0d6efd;
       padding: 0.75rem;
       border-radius: 12px;
-      margin-bottom: 1rem;
+      margin-bottom: 0.5rem;
       text-align: center;
       font-size: 1.2rem;
       font-weight: bold;
@@ -64,12 +64,16 @@
     }
     table {
       width: 100%;
-      min-width: 1000px;
+      min-width: 100%;
       border-collapse: collapse;
       margin-bottom: 2rem;
       background: white;
-      table-layout: auto;
+      table-layout: fixed;
     }
+    thead th:nth-child(1) { width: 48%; }
+    thead th:nth-child(2) { width: 24%; }
+    thead th:nth-child(3) { width: 18%; }
+    thead th:nth-child(4) { width: 10%; }
     thead {
       background: linear-gradient(135deg, #f8f9fa, #e9ecef);
       border-bottom: 2px solid #dee2e6;
@@ -96,11 +100,15 @@
       background: #f8f9fa;
     }
     tbody td {
-      padding: 0.75rem;
+      padding: 0.4rem 0.75rem;
       vertical-align: top;
       word-break: break-word;
       color: #212529;
       border-right: 1px solid #f1f3f5;
+      font-size: 0.9rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     tbody td:last-child {
       border-right: none;
@@ -169,7 +177,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 1rem 2rem;
+      padding: 0.75rem 2rem;
       background: #f8f9fa;
       border-bottom: 1px solid #dee2e6;
       flex-wrap: wrap;
@@ -324,12 +332,10 @@
       <table>
         <thead>
           <tr>
-            <th>Process Name</th>
             <th>Path</th>
             <th>Product Name</th>
             <th>Vendor</th>
-            <th>Source URL</th>
-            <th>Found on Page</th>
+            <th>Version</th>
           </tr>
         </thead>
         <tbody id="dataTable">
@@ -396,11 +402,6 @@
         result.data.forEach((row) => {
           const tr = document.createElement('tr');
           
-          // Process Name
-          const tdProcess = document.createElement('td');
-          tdProcess.textContent = result.processName;
-          tr.appendChild(tdProcess);
-          
           // Path with copy icon
           const tdPath = document.createElement('td');
           const pathText = row.filePath || 'Not found';
@@ -439,47 +440,46 @@
           
           // Vendor
           const tdVendor = document.createElement('td');
-          tdVendor.textContent = row.vendor || 'Not found';
+          const vendorText = row.vendor || 'Not found';
+          const vendorDiv = document.createElement('div');
+          vendorDiv.className = 'cell-with-copy';
+          const vendorContent = document.createElement('span');
+          vendorContent.className = 'cell-content';
+          vendorContent.textContent = vendorText;
+          const vendorCopyIcon = document.createElement('span');
+          vendorCopyIcon.className = 'copy-icon';
+          vendorCopyIcon.textContent = '📋';
+          vendorCopyIcon.title = 'Copy to clipboard';
+          vendorCopyIcon.onclick = function() { copyToClipboard(vendorText, this); };
+          vendorDiv.appendChild(vendorContent);
+          vendorDiv.appendChild(vendorCopyIcon);
+          tdVendor.appendChild(vendorDiv);
           tr.appendChild(tdVendor);
           
-          // Source URL with copy icon
-          const tdUrl = document.createElement('td');
-          if (result.url !== '#') {
-            const urlDiv = document.createElement('div');
-            urlDiv.className = 'cell-with-copy';
-            const urlContent = document.createElement('span');
-            urlContent.className = 'cell-content';
-            const urlLink = document.createElement('a');
-            urlLink.href = result.url;
-            urlLink.target = '_blank';
-            urlLink.style.color = '#0d6efd';
-            urlLink.style.textDecoration = 'underline';
-            urlLink.textContent = result.url;
-            urlContent.appendChild(urlLink);
-            const urlCopyIcon = document.createElement('span');
-            urlCopyIcon.className = 'copy-icon';
-            urlCopyIcon.textContent = '📋';
-            urlCopyIcon.title = 'Copy to clipboard';
-            urlCopyIcon.onclick = function() { copyToClipboard(result.url, this); };
-            urlDiv.appendChild(urlContent);
-            urlDiv.appendChild(urlCopyIcon);
-            tdUrl.appendChild(urlDiv);
-          } else {
-            tdUrl.textContent = 'Not available';
-          }
-          tr.appendChild(tdUrl);
-          
-          // Found on Page (only add once for first row)
-          const tdPage = document.createElement('td');
-          tdPage.innerHTML = `<span class="badge badge-success">Page ${result.page}</span>`;
-          tr.appendChild(tdPage);
+          // Version
+          const tdVersion = document.createElement('td');
+          const versionText = row.version || 'Not found';
+          const versionDiv = document.createElement('div');
+          versionDiv.className = 'cell-with-copy';
+          const versionContent = document.createElement('span');
+          versionContent.className = 'cell-content';
+          versionContent.textContent = versionText;
+          const versionCopyIcon = document.createElement('span');
+          versionCopyIcon.className = 'copy-icon';
+          versionCopyIcon.textContent = '📋';
+          versionCopyIcon.title = 'Copy to clipboard';
+          versionCopyIcon.onclick = function() { copyToClipboard(versionText, this); };
+          versionDiv.appendChild(versionContent);
+          versionDiv.appendChild(versionCopyIcon);
+          tdVersion.appendChild(versionDiv);
+          tr.appendChild(tdVersion);
           
           tbody.appendChild(tr);
         });
       } else {
         // No data - show error message
         const tr = document.createElement('tr');
-        tr.innerHTML = '<td colspan="6" style="text-align: center; color: #6c757d;">No data found</td>';
+        tr.innerHTML = '<td colspan="4" style="text-align: center; color: #6c757d;">No data found</td>';
         tbody.appendChild(tr);
       }
     }
@@ -500,7 +500,7 @@
         }
 
         // Create CSV content with BOM for Excel compatibility
-        const headers = ['Process Name', 'File Path', 'Product Name', 'Vendor', 'Source URL', 'Found on Page'];
+        const headers = ['Process Name', 'File Path', 'Product Name', 'Vendor', 'Version'];
         let csvContent = headers.join(',') + '\r\n';
 
         result.data.forEach((row) => {
@@ -509,8 +509,7 @@
             `"${(row.filePath || 'Not found').replace(/"/g, '""').replace(/\n/g, ' ').replace(/\r/g, '')}"`,
             `"${(row.product || 'Not found').replace(/"/g, '""').replace(/\n/g, ' ').replace(/\r/g, '')}"`,
             `"${(row.vendor || 'Not found').replace(/"/g, '""').replace(/\n/g, ' ').replace(/\r/g, '')}"`,
-            `"${(result.url || '').replace(/"/g, '""')}"`,
-            `"Page ${result.page || 'Unknown'}"`
+            `"${(row.version || 'Not found').replace(/"/g, '""').replace(/\n/g, ' ').replace(/\r/g, '')}"`
           ];
           csvContent += csvRow.join(',') + '\r\n';
         });

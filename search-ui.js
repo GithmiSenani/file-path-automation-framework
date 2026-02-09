@@ -250,48 +250,50 @@ async function performSearch(processName, browserContext) {
         const extractedData = await page.evaluate(() => {
           const allRows = [];
           const tables = document.querySelectorAll('table');
-          
+          let headerIndexes = {};
+
+          // First, find all possible headers from all tables
           for (const table of tables) {
             const rows = Array.from(table.querySelectorAll('tr'));
-            let headerRow = null;
-            let headerIndexes = {};
-            
             for (const row of rows) {
               const cells = Array.from(row.querySelectorAll('th, td'));
-              const cellTexts = cells.map(c => c.textContent.trim());
-              
-              if (cellTexts.some(text => text.toLowerCase().includes('path') || text.toLowerCase().includes('product name'))) {
-                headerRow = row;
-                cellTexts.forEach((text, index) => {
-                  const lower = text.toLowerCase();
-                  if (lower.includes('path')) headerIndexes.path = index;
-                  else if (lower.includes('product')) headerIndexes.product = index;
-                  else if (lower.includes('vendor')) headerIndexes.vendor = index;
+              if (cells.length > 1) { // Likely a header or data row
+                cells.forEach((cell, index) => {
+                  const text = cell.textContent.trim().toLowerCase();
+                  if (text.includes('path') && !headerIndexes.hasOwnProperty('path')) headerIndexes.path = index;
+                  if (text.includes('product') && !headerIndexes.hasOwnProperty('product')) headerIndexes.product = index;
+                  if (text.includes('vendor') && !headerIndexes.hasOwnProperty('vendor')) headerIndexes.vendor = index;
+                  if (text.includes('version') && !headerIndexes.hasOwnProperty('version')) headerIndexes.version = index;
+                  if (text.includes('size') && !headerIndexes.hasOwnProperty('size')) headerIndexes.size = index;
+                  if (text.includes('md5') && !headerIndexes.hasOwnProperty('md5')) headerIndexes.md5 = index;
                 });
-                break;
               }
             }
-            
-            if (headerRow && Object.keys(headerIndexes).length > 0) {
-              const headerIndex = rows.indexOf(headerRow);
-              
-              for (let i = headerIndex + 1; i < rows.length; i++) {
-                const dataRow = rows[i];
-                const dataCells = Array.from(dataRow.querySelectorAll('td'));
-                
-                if (dataCells.length === 0) continue;
-                
-                const rowData = {
-                  filePath: dataCells[headerIndexes.path]?.textContent.trim() || 'Not found',
-                  product: dataCells[headerIndexes.product]?.textContent.trim() || 'Not found',
-                  vendor: dataCells[headerIndexes.vendor]?.textContent.trim() || 'Not found'
-                };
-                
-                if (rowData.filePath !== 'Not found' && rowData.filePath.length > 0) {
-                  allRows.push(rowData);
+          }
+
+          // Now, extract data from the main data table
+          for (const table of tables) {
+            const rows = Array.from(table.querySelectorAll('tr'));
+            const hasPathHeader = rows.some(r => r.textContent.toLowerCase().includes('path'));
+
+            if (hasPathHeader) {
+              for (const row of rows) {
+                const dataCells = Array.from(row.querySelectorAll('td'));
+                if (dataCells.length >= Object.keys(headerIndexes).length - 2) { // A plausible data row
+                  const filePath = dataCells[headerIndexes.path]?.textContent.trim() || '';
+                  if (filePath.includes('\\') || filePath.includes('/')) {
+                    allRows.push({
+                      filePath: filePath,
+                      product: dataCells[headerIndexes.product]?.textContent.trim() || 'Not found',
+                      vendor: dataCells[headerIndexes.vendor]?.textContent.trim() || 'Not found',
+                      version: dataCells[headerIndexes.version]?.textContent.trim() || 'Not found',
+                      size: dataCells[headerIndexes.size]?.textContent.trim() || 'Not found',
+                      md5: dataCells[headerIndexes.md5]?.textContent.trim() || 'Not found'
+                    });
+                  }
                 }
               }
-              break;
+              if (allRows.length > 0) break; // Stop after processing the main data table
             }
           }
           
@@ -304,6 +306,9 @@ async function performSearch(processName, browserContext) {
           console.log(`     Path: ${row.filePath}`);
           console.log(`     Product Name: ${row.product}`);
           console.log(`     Vendor: ${row.vendor}`);
+          console.log(`     Version: ${row.version}`);
+          console.log(`     Size: ${row.size}`);
+          console.log(`     MD5: ${row.md5}`);
         });
         
         // Open results page
