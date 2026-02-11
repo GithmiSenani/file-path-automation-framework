@@ -5,20 +5,20 @@ test('Manual process input → smart alphabetical search on processchecker', asy
   const context = await browser.newContext();
   const page = await context.newPage();
 
-  // 1️⃣ Open local UI
+  // Open local UI
   const localHtml = path.join(__dirname, '..', 'ui', 'index.html');
   await page.goto(`file://${localHtml}`);
-  console.log('🟢 Local UI opened. Type your process name.');
+  console.log('Local UI opened. Type your process name.');
 
-  // 2️⃣ Pause for manual typing
+  // Pause for manual typing
   await page.pause(); // Type process name in the Playwright browser input
 
-  // 3️⃣ Read typed process name
+  // Read typed process name
   const processName = (await page.inputValue('#processName')).trim();
   if (!processName) throw new Error('❌ No process name entered!');
   console.log(`🔍 Process detected: ${processName}`);
 
-  // 4️⃣ Detect first letter
+  // Detect first letter
   const firstLetter = processName[0].toUpperCase();
   let pageNumber = 1;
   const maxPages = 10000; // high max just in case
