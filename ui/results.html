@@ -1,20 +1,24 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Process Details - Results</title>
   <style>
-    :root{
-      --bg1: #f8f9fa;
-      --bg2: #e9ecef;
-      --accent: #0d6efd;
-      --accent2: #6c757d;
+    :root {
+      --background: #f8f9fa; /* Light gray background */
+      --surface: #ffffff;    /* Card/surface color */
+      --primary: #4a90e2;     /* A friendly, accessible blue */
+      --primary-light: #e8f3ff; /* Lighter shade for gradients/hovers */
+      --secondary: #6c757d;   /* Muted gray for secondary text */
+      --text-primary: #212529; /* Dark gray for primary text */
+      --border-color: #dee2e6; /* Standard border color */
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { 
-      font-family: system-ui, -apple-system, Roboto, "Segoe UI", Arial; 
-      background: linear-gradient(135deg, #ffffff, #f8f9fa); 
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; 
+      background-color: var(--background);
+      color: var(--text-primary);
       min-height: 100vh;
       padding: 0;
       margin: 0;
@@ -24,70 +28,85 @@
       width: 100%;
       height: 100vh;
       margin: 0;
-      background: white;
+      background: var(--surface);
       border-radius: 0;
       box-shadow: none;
       overflow: hidden;
       border: none;
     }
     .header {
-      background: linear-gradient(135deg, #ffffff, #f8f9fa);
+      background: var(--surface);
       padding: 2rem;
-      border-bottom: 2px solid #e9ecef;
+      border-bottom: 1px solid var(--border-color);
       text-align: center;
       border-radius: 0;
     }
     .header h1 {
       font-size: 2rem;
       margin-bottom: 0.5rem;
-      color: #212529;
+      color: var(--text-primary);
     }
     .header p {
-      color: #6c757d;
+      color: var(--secondary);
       font-size: 1rem;
     }
     .content {
       padding: 2rem;
-      overflow-x: auto;
+      overflow-y: auto;
       height: calc(100vh - 180px);
     }
     .process-name {
-      background: linear-gradient(135deg, #e7f3ff, #cfe2ff);
-      color: #0d6efd;
+      background: #2c5aa0;
+      color: white;
       padding: 0.75rem;
       border-radius: 12px;
       margin-bottom: 0.5rem;
       text-align: center;
       font-size: 1.2rem;
       font-weight: bold;
-      border: 2px solid #9ec5fe;
+      border: 1px solid #2c5aa0;
+      position: sticky;
+      top: 0;
+      z-index: 10;
     }
     table {
       width: 100%;
       min-width: 100%;
       border-collapse: collapse;
       margin-bottom: 2rem;
-      background: white;
+      background: var(--surface);
       table-layout: fixed;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
     }
-    thead th:nth-child(1) { width: 48%; }
-    thead th:nth-child(2) { width: 24%; }
-    thead th:nth-child(3) { width: 18%; }
-    thead th:nth-child(4) { width: 10%; }
+    .table-wrapper {
+      overflow-y: auto;
+      max-height: calc(100vh - 280px);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+    }
+    thead th:nth-child(1) { width: 40%; }
+    thead th:nth-child(2) { width: 28%; }
+    thead th:nth-child(3) { width: 20%; }
+    thead th:nth-child(4) { width: 12%; }
     thead {
-      background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-      border-bottom: 2px solid #dee2e6;
+      background: #e8eef7;
+      border-bottom: 2px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      z-index: 9;
     }
     thead th {
       padding: 1rem;
       text-align: left;
       font-weight: 600;
-      font-size: 0.9rem;
+      font-size: 0.8rem;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       white-space: nowrap;
-      color: #495057;
+      color: #212529;
       border-right: 1px solid #dee2e6;
+      background: #e8eef7;
     }
     thead th:last-child {
       border-right: none;
@@ -96,25 +115,32 @@
       border-bottom: 1px solid #e9ecef;
       transition: background 0.2s;
     }
-    tbody tr:hover {
+    tbody tr:nth-child(odd) {
       background: #f8f9fa;
+    }
+    tbody tr:hover {
+      background: var(--primary-light);
     }
     tbody td {
       padding: 0.4rem 0.75rem;
-      vertical-align: top;
-      word-break: break-word;
-      color: #212529;
-      border-right: 1px solid #f1f3f5;
-      font-size: 0.9rem;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      vertical-align: middle;
+      color: var(--text-primary);
+      border-right: 1px solid #e9ecef;
+      font-size: 0.8rem;
+      line-height: 1.4;
+    }
+    tbody td:first-child {
+      white-space: normal;
+      word-break: break-all;
+      color: var(--primary);
+      font-weight: 500;
+      padding: 0.4rem 0.75rem;
     }
     tbody td:last-child {
       border-right: none;
     }
     tbody td a {
-      color: #0d6efd;
+      color: var(--primary);
       text-decoration: none;
     }
     tbody td a:hover {
@@ -136,7 +162,7 @@
       display: flex;
       gap: 1rem;
       justify-content: center;
-      padding: 1rem 2rem 2rem;
+      padding: 1rem 2rem 1rem; /* Reduced bottom padding */
     }
     .btn {
       padding: 0.75rem 1.5rem;
@@ -154,17 +180,17 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
     .btn-primary {
-      background: #0d6efd;
+      background: var(--primary);
       color: white;
-      border: 2px solid #0d6efd;
+      border: 2px solid var(--primary);
     }
     .btn-primary:hover {
-      background: #0b5ed7;
+      background: #3a7ac8; /* Slightly darker blue on hover */
     }
     .btn-secondary {
-      background: white;
-      color: #6c757d;
-      border: 2px solid #dee2e6;
+      background: var(--surface);
+      color: var(--secondary);
+      border: 2px solid var(--border-color);
     }
     .btn-secondary:hover {
       background: #f8f9fa;
@@ -179,7 +205,7 @@
       align-items: center;
       padding: 0.75rem 2rem;
       background: #f8f9fa;
-      border-bottom: 1px solid #dee2e6;
+      border-bottom: 1px solid var(--border-color);
       flex-wrap: wrap;
       gap: 1.5rem;
     }
@@ -190,17 +216,17 @@
     }
     .stat-label {
       font-size: 0.9rem;
-      color: #6c757d;
+      color: var(--secondary);
       font-weight: 500;
     }
     .stat-value {
       font-size: 0.95rem;
-      color: #212529;
+      color: var(--text-primary);
       font-weight: 600;
     }
     .search-again-btn {
       padding: 0.5rem 1rem;
-      background: #0d6efd;
+      background: #2c5aa0;
       color: white;
       border: none;
       border-radius: 6px;
@@ -212,7 +238,7 @@
       transition: background 0.2s;
     }
     .search-again-btn:hover {
-      background: #0b5ed7;
+      background: #1e3a5f;
     }
     .export-csv-btn {
       padding: 0.5rem 1rem;
@@ -311,6 +337,10 @@
         <span class="stat-value" id="totalPaths">-</span>
       </div>
       <div class="stat-item">
+        <span class="stat-label">Found on Page:</span>
+        <span class="stat-value" id="foundOnPage">-</span>
+      </div>
+      <div class="stat-item">
         <span class="stat-label">Search Time:</span>
         <span class="stat-value" id="searchTime">-</span>
       </div>
@@ -329,10 +359,11 @@
         Loading...
       </div>
       
-      <table>
+      <div class="table-wrapper">
+        <table>
         <thead>
           <tr>
-            <th>Path</th>
+            <th>File Path</th>
             <th>Product Name</th>
             <th>Vendor</th>
             <th>Version</th>
@@ -342,6 +373,7 @@
           <!-- Rows will be dynamically populated by JavaScript -->
         </tbody>
       </table>
+      </div>
     </div>
   </div>
 
@@ -369,6 +401,7 @@
       
       // Update statistics
       document.getElementById('totalPaths').textContent = result.totalPaths;
+      document.getElementById('foundOnPage').textContent = result.page;
       document.getElementById('searchTime').textContent = result.searchTime + 's';
       document.getElementById('searchDate').textContent = result.searchDate;
       
@@ -407,15 +440,14 @@
           const pathText = row.filePath || 'Not found';
           const pathDiv = document.createElement('div');
           pathDiv.className = 'cell-with-copy';
-          const pathContent = document.createElement('span');
-          pathContent.className = 'cell-content';
-          pathContent.textContent = pathText;
+          // No cell-content span for path to allow wrapping
+          pathDiv.textContent = pathText; 
           const pathCopyIcon = document.createElement('span');
           pathCopyIcon.className = 'copy-icon';
           pathCopyIcon.textContent = '📋';
           pathCopyIcon.title = 'Copy to clipboard';
           pathCopyIcon.onclick = function() { copyToClipboard(pathText, this); };
-          pathDiv.appendChild(pathContent);
+          // pathDiv.appendChild(pathContent); // Not needed
           pathDiv.appendChild(pathCopyIcon);
           tdPath.appendChild(pathDiv);
           tr.appendChild(tdPath);
@@ -464,13 +496,7 @@
           const versionContent = document.createElement('span');
           versionContent.className = 'cell-content';
           versionContent.textContent = versionText;
-          const versionCopyIcon = document.createElement('span');
-          versionCopyIcon.className = 'copy-icon';
-          versionCopyIcon.textContent = '📋';
-          versionCopyIcon.title = 'Copy to clipboard';
-          versionCopyIcon.onclick = function() { copyToClipboard(versionText, this); };
           versionDiv.appendChild(versionContent);
-          versionDiv.appendChild(versionCopyIcon);
           tdVersion.appendChild(versionDiv);
           tr.appendChild(tdVersion);
           
@@ -499,13 +525,16 @@
           return;
         }
 
-        // Create CSV content with BOM for Excel compatibility
-        const headers = ['Process Name', 'File Path', 'Product Name', 'Vendor', 'Version'];
-        let csvContent = headers.join(',') + '\r\n';
+        // Define headers for the CSV file
+        const headers = ['File Path', 'Product Name', 'Vendor', 'Version'];
+        
+        // Start CSV content with the process name and then the headers
+        let csvContent = `Process Name,"${(result.processName || '').replace(/"/g, '""')}"\r\n\r\n`;
+        csvContent += headers.join(',') + '\r\n';
 
+        // Add data rows
         result.data.forEach((row) => {
           const csvRow = [
-            `"${(result.processName || '').replace(/"/g, '""')}"`,
             `"${(row.filePath || 'Not found').replace(/"/g, '""').replace(/\n/g, ' ').replace(/\r/g, '')}"`,
             `"${(row.product || 'Not found').replace(/"/g, '""').replace(/\n/g, ' ').replace(/\r/g, '')}"`,
             `"${(row.vendor || 'Not found').replace(/"/g, '""').replace(/\n/g, ' ').replace(/\r/g, '')}"`,
@@ -514,11 +543,11 @@
           csvContent += csvRow.join(',') + '\r\n';
         });
 
-        // Add BOM for Excel
+        // Add BOM for Excel to handle special characters
         const BOM = '\uFEFF';
         const csvWithBOM = BOM + csvContent;
 
-        // Create blob and download
+        // Create a Blob and trigger the download
         const blob = new Blob([csvWithBOM], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
@@ -532,7 +561,7 @@
         link.click();
         document.body.removeChild(link);
         
-        // Clean up
+        // Clean up the URL object
         setTimeout(() => URL.revokeObjectURL(url), 100);
         
         console.log('CSV export successful');
