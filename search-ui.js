@@ -400,11 +400,9 @@ const server = http.createServer((req, res) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true, message: `Searching ${processes.length} process(es) in parallel` }));
         
-        // Run searches in parallel with staggered start
-        processes.forEach((processName, index) => {
-          setTimeout(() => {
-            performSearch(processName, context).catch(console.error);
-          }, index * 1000);
+        // Run all searches in parallel simultaneously
+        processes.forEach((processName) => {
+          performSearch(processName, context).catch(console.error);
         });
       } catch (error) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
