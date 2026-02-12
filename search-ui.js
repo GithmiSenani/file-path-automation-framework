@@ -375,6 +375,45 @@ async function performSearch(processName, browserContext) {
 }
 
 const server = http.createServer((req, res) => {
+  // Handle POST request for parallel search
+  if (req.method === 'POST' && req.url === '/api/search-parallel') {
+    let body = '';
+    
+    req.on('data', chunk => {
+      body += chunk.toString();
+    });
+    
+    req.on('end', () => {
+      try {
+        const { processes } = JSON.parse(body);
+        
+        if (!Array.isArray(processes) || processes.length === 0) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Processes array is required' }));
+          return;
+        }
+        
+        console.log(`\n🚀 Starting parallel search for ${processes.length} process(es)`);
+        console.log(`📋 Processes: ${processes.join(', ')}\n`);
+        
+        // Send immediate response
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, message: `Searching ${processes.length} process(es) in parallel` }));
+        
+        // Run searches in parallel with staggered start
+        processes.forEach((processName, index) => {
+          setTimeout(() => {
+            performSearch(processName, context).catch(console.error);
+          }, index * 1000);
+        });
+      } catch (error) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid JSON' }));
+      }
+    });
+    return;
+  }
+
   // Handle POST request for search
   if (req.method === 'POST' && req.url === '/api/search') {
     let body = '';
