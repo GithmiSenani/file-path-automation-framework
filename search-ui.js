@@ -412,18 +412,23 @@ const server = http.createServer((req, res) => {
         
         // Send immediate response to unblock the UI
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true, message: `Searching ${processes.length} process(es) in parallel. Each will open in its own browser tab.` }));
+        res.end(JSON.stringify({ success: true, message: `Searching ${processes.length} process(es) in parallel. Results will open when all searches complete.` }));
 
-        // Now run ALL searches in parallel simultaneously (not staggered)
-        // Each one will open its own results page
-        processes.forEach((processName) => {
-          performSearch(processName, context).then(result => {
-            if (result.success || result.error) {
-              // Open a new page for each result
+        // Run ALL searches in parallel simultaneously and WAIT for all to complete
+        const searchPromises = processes.map((processName) => 
+          performSearch(processName, context).catch(console.error)
+        );
+
+        // Wait for ALL searches to complete before opening ANY result tabs
+        Promise.all(searchPromises).then(results => {
+          console.log(`\n✅ All searches complete! Opening ${results.length} result tabs...`);
+          // Now open all results at once
+          results.forEach(result => {
+            if (result && (result.success || result.error)) {
               openResultsPage(result);
             }
-          }).catch(console.error);
-        });
+          });
+        }).catch(console.error);
 
       } catch (error) {
         console.error(`[Server] ❌ Critical error in /api/search-parallel: ${error.message}`);
