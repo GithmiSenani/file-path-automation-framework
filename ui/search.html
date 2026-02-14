@@ -377,43 +377,45 @@
         return;
       }
 
-      // Disable form
       addBtn.disabled = true;
       addAllBtn.disabled = true;
       searchBtn.disabled = true;
       btnText.innerHTML = '<span class="spinner"></span> Searching...';
-      showStatus(`Starting automated parallel search for ${processList.length} process(es)... This may take 30-60 seconds per process.`, 'loading');
+      showStatus(`Starting search for ${processList.length} process(es)...`, 'loading');
 
       try {
         const response = await fetch('/api/search-parallel', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ processes: processList })
         });
+
+        if (!response.ok) {
+          // Try to parse error from server, or show generic message
+          const errorData = await response.json().catch(() => ({ error: 'An unknown server error occurred.' }));
+          throw new Error(errorData.error || `HTTP error! Status: ${response.status}`);
+        }
 
         const data = await response.json();
 
         if (data.success) {
-          showStatus(`✅ Parallel search started for ${processList.length} process(es)! ${processList.length} new browser tabs will open with results.`, 'success');
-          
-          // Reset form after 3 seconds
-          setTimeout(() => {
-            addBtn.disabled = false;
-            addAllBtn.disabled = false;
-            searchBtn.disabled = processList.length === 0;
-            btnText.textContent = '🚀 Search All Processes';
-            processList = [];
-            updateProcessList();
-            processInput.focus();
-            statusDiv.classList.remove('show');
-          }, 3000);
+          // Search initiated successfully - results will open in separate tabs
+          showStatus('✅ Search completed! Results are opening in new tabs...', 'success');
+          // Reset form
+          processList = [];
+          updateProcessList();
+          addBtn.disabled = false;
+          addAllBtn.disabled = false;
+          searchBtn.disabled = true;
+          btnText.textContent = '🚀 Search All Processes';
         } else {
-          throw new Error(data.error || 'Search failed');
+          throw new Error(data.message || 'The search failed on the server.');
         }
+
       } catch (error) {
+        console.error('Error during search:', error);
         showStatus(`❌ Error: ${error.message}`, 'error');
+        // Re-enable form on error
         addBtn.disabled = false;
         addAllBtn.disabled = false;
         searchBtn.disabled = processList.length === 0;

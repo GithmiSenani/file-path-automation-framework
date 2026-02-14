@@ -6,20 +6,19 @@ const path = require('path');
 const PORT = 3000;
 let browser = null;
 let context = null;
+let searchPage = null; // Keep reference to the original search page
 
-// Main search function - case-insensitive exact matching
+// Main search function - Creates its own isolated page
 async function performSearch(processName, browserContext) {
+  let page = null;
   try {
-    const page = await browserContext.newPage();
+    // Create a brand new page specifically for this search
+    page = await browserContext.newPage();
     const startTime = Date.now();
-    const searchStartDate = new Date().toLocaleString();
     
-    // Get first letter for alphabetical navigation
     const firstLetter = processName[0].toUpperCase();
     const baseUrl = `https://processchecker.com/file.php?start=${firstLetter}`;
-    
-    console.log(`Starting from: ${baseUrl}`);
-    console.log(`Searching for: "${processName}"\n`);
+    console.log(`[${processName}] Starting search from: ${baseUrl}`);
 
     // Helper function to get page info
     async function getPageInfo(pageNum) {
@@ -311,66 +310,87 @@ async function performSearch(processName, browserContext) {
           console.log(`     MD5: ${row.md5}`);
         });
         
-        // Open results page
-        console.log('\nOpening results page...\n');
-        
-        // Calculate search time
         const endTime = Date.now();
         const searchTime = ((endTime - startTime) / 1000).toFixed(2);
         
-        const resultsPath = path.join(__dirname, 'ui', 'results.html');
-        const resultsUrl = `file:///${resultsPath.replace(/\\/g, '/')}?` + 
-          `name=${encodeURIComponent(matchedLink.text)}` +
-          `&data=${encodeURIComponent(JSON.stringify(extractedData))}` +
-          `&url=${encodeURIComponent(page.url())}` +
-          `&page=${finalPageNum}` +
-          `&searchTime=${searchTime}` +
-          `&searchDate=${encodeURIComponent(searchStartDate)}` +
-          `&totalPaths=${extractedData.length}`;
+        await page.close();
         
-        await page.goto(resultsUrl);
-        
-        console.log(`Search completed in ${searchTime} seconds!`);
+        return {
+          success: true,
+          processName: processName,
+          url: finalUrl,
+          page: finalPageNum,
+          searchTime: searchTime,
+          data: extractedData
+        };
+
       } else {
-        // Process not found - show error page
-        console.log(`\nProcess "${processName}" not found on page ${finalPageNum}`);
-        
-        // Show "Not Found" result page
+        // Process not found - return error
         const endTime = Date.now();
         const searchTime = ((endTime - startTime) / 1000).toFixed(2);
         
-        const notFoundData = JSON.stringify([{
-          filePath: 'Process not found',
-          product: 'N/A',
-          vendor: 'N/A'
-        }]);
-        
-        const resultsUrl = `http://localhost:${PORT}/results.html?name=${encodeURIComponent(processName)}&data=${encodeURIComponent(notFoundData)}&url=${encodeURIComponent(finalUrl)}&page=${finalPageNum}&searchTime=${searchTime}&searchDate=${encodeURIComponent(searchStartDate)}&totalPaths=0`;
-        
-        await page.goto(resultsUrl);
-        console.log(`\nShowing "Not Found" results page`);
+        console.log(`\nProcess "${processName}" not found on page ${finalPageNum}`);
+        await page.close();
+        return {
+          success: false,
+          processName: processName,
+          page: finalPageNum,
+          searchTime: searchTime,
+          error: `Process "${processName}" not found on page ${finalPageNum}`
+        };
       }
     } else {
-      // Process not found at all - show error page
-      console.log(`\nProcess "${processName}" not found`);
-      
+      // Process not found at all - return error
       const endTime = Date.now();
       const searchTime = ((endTime - startTime) / 1000).toFixed(2);
       
-      const notFoundData = JSON.stringify([{
-        filePath: 'Process not found in database',
-        product: 'N/A',
-        vendor: 'N/A'
-      }]);
-      
-      const resultsUrl = `http://localhost:${PORT}/results.html?name=${encodeURIComponent(processName)}&data=${encodeURIComponent(notFoundData)}&url=#&page=0&searchTime=${searchTime}&searchDate=${encodeURIComponent(searchStartDate)}&totalPaths=0`;
-      
-      await page.goto(resultsUrl);
-      console.log(`\nShowing "Not Found" results page`);
+      console.log(`\nProcess "${processName}" not found`);
+      await page.close();
+      return {
+        success: false,
+        processName: processName,
+        page: 0,
+        searchTime: searchTime,
+        error: `Process "${processName}" not found`
+      };
     }
 
   } catch (error) {
-    console.error(`\nError: ${error.message}`);
+    console.error(`[${processName}] ❌ Error: ${error.message}`);
+    if (page && !page.isClosed()) await page.close();
+    return {
+      success: false,
+      processName: processName,
+      error: error.message
+    };
+  }
+}
+
+// Helper function to open results in a new page
+async function openResultsPage(result) {
+  try {
+    const newPage = await context.newPage();
+    
+    const resultsPath = path.join(__dirname, 'ui', 'results.html');
+    const totalPaths = (result.data && result.data.length) || 0;
+    
+    // Build the URL with all necessary parameters
+    const params = new URLSearchParams({
+      name: result.processName,
+      data: JSON.stringify(result.data || []),
+      url: result.url || '#',
+      page: result.page || '0',
+      searchTime: result.searchTime || '0',
+      searchDate: new Date().toLocaleString(),
+      totalPaths: totalPaths.toString()
+    });
+    
+    const resultsUrl = `file:///${resultsPath.replace(/\\/g, '/')}?${params.toString()}`;
+    
+    await newPage.goto(resultsUrl);
+    console.log(`[${result.processName}] ✅ Opened results page in new tab (${totalPaths} paths found)`);
+  } catch (error) {
+    console.error(`[${result.processName}] ❌ Error opening results page:`, error.message);
   }
 }
 
@@ -378,35 +398,37 @@ const server = http.createServer((req, res) => {
   // Handle POST request for parallel search
   if (req.method === 'POST' && req.url === '/api/search-parallel') {
     let body = '';
-    
-    req.on('data', chunk => {
-      body += chunk.toString();
-    });
-    
-    req.on('end', () => {
+    req.on('data', chunk => { body += chunk.toString(); });
+    req.on('end', async () => {
       try {
         const { processes } = JSON.parse(body);
-        
         if (!Array.isArray(processes) || processes.length === 0) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: 'Processes array is required' }));
           return;
         }
         
-        console.log(`\n🚀 Starting parallel search for ${processes.length} process(es)`);
-        console.log(`📋 Processes: ${processes.join(', ')}\n`);
+        console.log(`\n🚀 Starting parallel search for ${processes.length} process(es) - ALL AT ONCE`);
         
-        // Send immediate response
+        // Send immediate response to unblock the UI
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true, message: `Searching ${processes.length} process(es) in parallel` }));
-        
-        // Run all searches in parallel simultaneously
+        res.end(JSON.stringify({ success: true, message: `Searching ${processes.length} process(es) in parallel. Each will open in its own browser tab.` }));
+
+        // Now run ALL searches in parallel simultaneously (not staggered)
+        // Each one will open its own results page
         processes.forEach((processName) => {
-          performSearch(processName, context).catch(console.error);
+          performSearch(processName, context).then(result => {
+            if (result.success || result.error) {
+              // Open a new page for each result
+              openResultsPage(result);
+            }
+          }).catch(console.error);
         });
+
       } catch (error) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Invalid JSON' }));
+        console.error(`[Server] ❌ Critical error in /api/search-parallel: ${error.message}`);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'A critical error occurred on the server.' }));
       }
     });
     return;
@@ -649,15 +671,15 @@ async function startApp() {
     });
     
     context = await browser.newContext();
-    const page = await context.newPage();
+    searchPage = await context.newPage();
     
-    await page.goto(`http://localhost:${PORT}/search.html`);
+    await searchPage.goto(`http://localhost:${PORT}/search.html`);
     
     console.log('✅ Search interface loaded in Chrome!');
     console.log('👉 Enter a process name and click Search\n');
     
     // Keep the browser open
-    page.on('close', () => {
+    searchPage.on('close', () => {
       console.log('\n🛑 Browser closed. Shutting down server...');
       server.close();
       process.exit(0);
