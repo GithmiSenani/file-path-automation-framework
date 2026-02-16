@@ -73,7 +73,6 @@ async function performSearch(processName, browserContext) {
     
     if (!pageInfo.exists) {
       console.log('No processes found on first page');
-      await page.close();
       return;
     }
 
@@ -94,7 +93,6 @@ async function performSearch(processName, browserContext) {
       targetPageInfo = { pageNum: 1, link: exactMatch };
     } else if (processName.toLowerCase() < pageInfo.first) {
       console.log(`\nProcess "${processName}" comes before page 1 alphabetically`);
-      await page.close();
       return;
     }
 
@@ -313,15 +311,14 @@ async function performSearch(processName, browserContext) {
         const endTime = Date.now();
         const searchTime = ((endTime - startTime) / 1000).toFixed(2);
         
-        await page.close();
-        
         return {
           success: true,
           processName: processName,
           url: finalUrl,
           page: finalPageNum,
           searchTime: searchTime,
-          data: extractedData
+          data: extractedData,
+          browserPage: page
         };
 
       } else {
@@ -330,13 +327,13 @@ async function performSearch(processName, browserContext) {
         const searchTime = ((endTime - startTime) / 1000).toFixed(2);
         
         console.log(`\nProcess "${processName}" not found on page ${finalPageNum}`);
-        await page.close();
         return {
           success: false,
           processName: processName,
           page: finalPageNum,
           searchTime: searchTime,
-          error: `Process "${processName}" not found on page ${finalPageNum}`
+          error: `Process "${processName}" not found on page ${finalPageNum}`,
+          browserPage: page
         };
       }
     } else {
@@ -345,33 +342,30 @@ async function performSearch(processName, browserContext) {
       const searchTime = ((endTime - startTime) / 1000).toFixed(2);
       
       console.log(`\nProcess "${processName}" not found`);
-      await page.close();
       return {
         success: false,
         processName: processName,
         page: 0,
         searchTime: searchTime,
-        error: `Process "${processName}" not found`
+        error: `Process "${processName}" not found`,
+        browserPage: page
       };
     }
 
   } catch (error) {
     console.error(`[${processName}] ❌ Error: ${error.message}`);
-    if (page && !page.isClosed()) await page.close();
     return {
       success: false,
       processName: processName,
-      error: error.message
+      error: error.message,
+      browserPage: page
     };
   }
 }
 
-// Helper function to open results in a new page
-async function openResultsPage(result) {
+// Helper function to display results on the search page itself
+async function displayResultsOnPage(page, result) {
   try {
-    const newPage = await context.newPage();
-    
-    const resultsPath = path.join(__dirname, 'ui', 'results.html');
     const totalPaths = (result.data && result.data.length) || 0;
     
     // Build the URL with all necessary parameters
@@ -385,12 +379,13 @@ async function openResultsPage(result) {
       totalPaths: totalPaths.toString()
     });
     
+    const resultsPath = path.join(__dirname, 'ui', 'results.html');
     const resultsUrl = `file:///${resultsPath.replace(/\\/g, '/')}?${params.toString()}`;
     
-    await newPage.goto(resultsUrl);
-    console.log(`[${result.processName}] ✅ Opened results page in new tab (${totalPaths} paths found)`);
+    await page.goto(resultsUrl);
+    console.log(`[${result.processName}] ✅ Displayed results on tab (${totalPaths} paths found)`);
   } catch (error) {
-    console.error(`[${result.processName}] ❌ Error opening results page:`, error.message);
+    console.error(`[${result.processName}] ❌ Error displaying results:`, error.message);
   }
 }
 
@@ -421,11 +416,11 @@ const server = http.createServer((req, res) => {
 
         // Wait for ALL searches to complete before opening ANY result tabs
         Promise.all(searchPromises).then(results => {
-          console.log(`\n✅ All searches complete! Opening ${results.length} result tabs...`);
-          // Now open all results at once
+          console.log(`\n✅ All searches complete! Displaying results on tabs...`);
+          // Display results on each tab
           results.forEach(result => {
-            if (result && (result.success || result.error)) {
-              openResultsPage(result);
+            if (result && result.browserPage && (result.success || result.error)) {
+              displayResultsOnPage(result.browserPage, result);
             }
           });
         }).catch(console.error);

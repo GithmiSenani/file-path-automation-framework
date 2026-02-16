@@ -22,14 +22,14 @@
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; 
       background-color: var(--background);
       min-height: 100vh;
-      padding: 0;
+      padding: 2rem;
       margin: 0;
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: center;
     }
     .container {
-      max-width: 600px;
+      max-width: 700px;
       width: 100%;
       background: var(--surface);
       border-radius: 16px;
@@ -155,40 +155,37 @@
     <form id="searchForm">
       <div class="form-group">
         <label for="processName">Add Process Names (Max 10)</label>
-        <p style="font-size: 0.875rem; color: #6c757d; margin-bottom: 0.5rem;">Enter process names one at a time and click "Add", or enter multiple names separated by commas and click "Add All".</p>
-        <div style="display: flex; gap: 0.5rem;">
-          <div style="position: relative; flex: 1;">
-            <input 
-              type="text" 
-              id="processName" 
-              name="processName" 
-              placeholder="Single: chrome | Multiple: svchost, chrome, notepad"
-              autofocus
-              style="padding-right: 50px;"
-            />
-            <span style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); color: #6c757d; font-weight: 600; pointer-events: none;">.exe</span>
-          </div>
-          <button type="button" class="btn btn-primary" id="addBtn" style="width: auto; padding: 0.875rem 1.5rem;">
-            Add
-          </button>
-          <button type="button" class="btn btn-primary" id="addAllBtn" style="width: auto; padding: 0.875rem 1.5rem; background: #28a745;">
-            Add All
-          </button>
+        <p style="font-size: 0.875rem; color: #6c757d; margin-bottom: 0.5rem;">Paste process names one per line or separated by commas, then click "Search All Processes".</p>
+        <textarea 
+          id="processName" 
+          name="processName" 
+          rows="10"
+          placeholder="Enter process names here..."
+          autofocus
+          style="width: 100%; padding: 0.875rem 1rem; font-size: 1rem; border: 1px solid var(--border-color); border-radius: 8px; transition: all 0.2s; background: #f8f9fa; font-family: monospace; resize: none;"
+        ></textarea>
+        <style>
+          textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: var(--surface);
+            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.2);
+          }
+        </style>
+      </div>
+
+      <div style="background: #f0f7ff; border: 1px solid #b3d9ff; border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem;">
+        <p style="font-weight: 600; color: var(--primary); margin-bottom: 0.5rem; font-size: 0.9rem;">📋 Example:</p>
+        <div style="background: white; border: 1px solid var(--border-color); border-radius: 6px; padding: 0.5rem; font-family: monospace; font-size: 0.8rem; color: #333; line-height: 1.4;">
+chrome<br/>
+notepad<br/>
+svchost<br/>
+explorer<br/>
+winsvc
         </div>
       </div>
 
-      <div class="form-group">
-        <label>Process List</label>
-        <div id="processList" style="background: #f8f9fa; border: 1px solid var(--border-color); border-radius: 8px; padding: 1rem; min-height: 60px;">
-          <div id="emptyState" style="color: var(--secondary); text-align: center; padding: 1rem;">No processes added yet</div>
-          <div id="processItems" style="display: flex; flex-wrap: wrap; gap: 0.75rem;"></div>
-        </div>
-        <p style="font-size: 0.875rem; color: #6c757d; margin-top: 0.5rem;">
-          <span id="processCount">0</span>/10 processes added
-        </p>
-      </div>
-
-      <button type="submit" class="btn btn-primary" id="searchBtn" disabled>
+      <button type="submit" class="btn btn-primary" id="searchBtn">
         <span id="btnText">🚀 Search All Processes</span>
       </button>
     </form>
@@ -196,122 +193,38 @@
     <div class="status" id="status"></div>
   </div>
 
-  <style>
-    .process-tag {
-      background: var(--primary);
-      color: white;
-      padding: 0.5rem 1rem;
-      border-radius: 20px;
-      font-size: 0.9rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      white-space: nowrap;
-    }
-    .process-tag button {
-      background: rgba(255, 255, 255, 0.3);
-      border: none;
-      color: white;
-      border-radius: 50%;
-      width: 20px;
-      height: 20px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.8rem;
-      padding: 0;
-      transition: all 0.2s;
-    }
-    .process-tag button:hover {
-      background: rgba(255, 255, 255, 0.5);
-    }
-  </style>
-
   <script>
     const form = document.getElementById('searchForm');
     const processInput = document.getElementById('processName');
-    const addBtn = document.getElementById('addBtn');
-    const addAllBtn = document.getElementById('addAllBtn');
     const searchBtn = document.getElementById('searchBtn');
     const btnText = document.getElementById('btnText');
     const statusDiv = document.getElementById('status');
-    const processItems = document.getElementById('processItems');
-    const emptyState = document.getElementById('emptyState');
-    const processCount = document.getElementById('processCount');
 
-    let processList = [];
     const MAX_PROCESSES = 10;
 
-    addBtn.addEventListener('click', function (e) {
+    form.addEventListener('submit', async function (e) {
       e.preventDefault();
-      addProcess();
-    });
-
-    addAllBtn.addEventListener('click', function (e) {
-      e.preventDefault();
-      addAllProcesses();
-    });
-
-    processInput.addEventListener('keypress', function (e) {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        addProcess();
-      }
-    });
-
-    function addProcess() {
-      let processName = processInput.value.trim();
-      if (!processName) {
-        showStatus('Please enter a process name', 'error');
-        return;
-      }
-
-      if (processList.length >= MAX_PROCESSES) {
-        showStatus(`Maximum ${MAX_PROCESSES} processes allowed`, 'error');
-        return;
-      }
-
-      // Automatically append .exe if not already present
-      if (!processName.toLowerCase().endsWith('.exe')) {
-        processName += '.exe';
-      }
-
-      // Check for duplicates
-      if (processList.includes(processName.toLowerCase())) {
-        showStatus(`"${processName}" is already in the list`, 'error');
-        return;
-      }
-
-      processList.push(processName.toLowerCase());
-      updateProcessList();
-      processInput.value = '';
-      processInput.focus();
-      statusDiv.classList.remove('show');
-      showStatus(`✅ Added "${processName}"`, 'success');
-    }
-
-    function addAllProcesses() {
+      
       let input = processInput.value.trim();
       if (!input) {
-        showStatus('Please enter process names separated by commas', 'error');
+        showStatus('Please enter process names', 'error');
         return;
       }
 
-      // Split by comma and trim each name
-      let names = input.split(',').map(name => name.trim()).filter(name => name.length > 0);
+      // Split by commas OR newlines and trim each name
+      let names = input.split(/[\n,]+/).map(name => name.trim()).filter(name => name.length > 0);
 
       if (names.length === 0) {
         showStatus('Please enter valid process names', 'error');
         return;
       }
 
-      let addedCount = 0;
+      let processList = [];
       let skippedCount = 0;
 
       for (let name of names) {
         if (processList.length >= MAX_PROCESSES) {
-          showStatus(`Maximum ${MAX_PROCESSES} processes reached. ${skippedCount} names were not added.`, 'error');
+          showStatus(`Maximum ${MAX_PROCESSES} processes reached. ${names.length - processList.length - skippedCount} names were not added.`, 'error');
           break;
         }
 
@@ -327,58 +240,13 @@
         }
 
         processList.push(name.toLowerCase());
-        addedCount++;
       }
 
-      updateProcessList();
-      processInput.value = '';
-      processInput.focus();
-      statusDiv.classList.remove('show');
-
-      if (addedCount > 0) {
-        let message = `✅ Added ${addedCount} process${addedCount > 1 ? 'es' : ''}`;
-        if (skippedCount > 0) {
-          message += ` (${skippedCount} duplicate${skippedCount > 1 ? 's' : ''} skipped)`;
-        }
-        showStatus(message, 'success');
-      } else {
-        showStatus('❌ No new processes added (all were duplicates)', 'error');
-      }
-    }
-
-    function removeProcess(index) {
-      processList.splice(index, 1);
-      updateProcessList();
-    }
-
-    function updateProcessList() {
-      emptyState.style.display = processList.length === 0 ? 'block' : 'none';
-      processItems.innerHTML = '';
-
-      processList.forEach((process, index) => {
-        const tag = document.createElement('div');
-        tag.className = 'process-tag';
-        tag.innerHTML = `
-          ${process}
-          <button type="button" onclick="removeProcess(${index})">×</button>
-        `;
-        processItems.appendChild(tag);
-      });
-
-      processCount.textContent = processList.length;
-      searchBtn.disabled = processList.length === 0;
-    }
-
-    form.addEventListener('submit', async function (e) {
-      e.preventDefault();
-      
       if (processList.length === 0) {
-        showStatus('Please add at least one process name', 'error');
+        showStatus('Please enter valid process names', 'error');
         return;
       }
 
-      addBtn.disabled = true;
-      addAllBtn.disabled = true;
       searchBtn.disabled = true;
       btnText.innerHTML = '<span class="spinner"></span> Searching...';
       showStatus(`Starting search for ${processList.length} process(es)...`, 'loading');
@@ -391,7 +259,6 @@
         });
 
         if (!response.ok) {
-          // Try to parse error from server, or show generic message
           const errorData = await response.json().catch(() => ({ error: 'An unknown server error occurred.' }));
           throw new Error(errorData.error || `HTTP error! Status: ${response.status}`);
         }
@@ -399,14 +266,9 @@
         const data = await response.json();
 
         if (data.success) {
-          // Search initiated successfully - results will open in separate tabs
           showStatus('✅ Search completed! Results are opening in new tabs...', 'success');
-          // Reset form
-          processList = [];
-          updateProcessList();
-          addBtn.disabled = false;
-          addAllBtn.disabled = false;
-          searchBtn.disabled = true;
+          processInput.value = '';
+          searchBtn.disabled = false;
           btnText.textContent = '🚀 Search All Processes';
         } else {
           throw new Error(data.message || 'The search failed on the server.');
@@ -415,10 +277,7 @@
       } catch (error) {
         console.error('Error during search:', error);
         showStatus(`❌ Error: ${error.message}`, 'error');
-        // Re-enable form on error
-        addBtn.disabled = false;
-        addAllBtn.disabled = false;
-        searchBtn.disabled = processList.length === 0;
+        searchBtn.disabled = false;
         btnText.textContent = '🚀 Search All Processes';
       }
     });
@@ -427,9 +286,6 @@
       statusDiv.textContent = message;
       statusDiv.className = `status show ${type}`;
     }
-
-    // Make removeProcess accessible globally
-    window.removeProcess = removeProcess;
   </script>
 </body>
 </html>
