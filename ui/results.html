@@ -33,6 +33,8 @@
       box-shadow: none;
       overflow: hidden;
       border: none;
+      display: flex;
+      flex-direction: column;
     }
     .header {
       background: var(--surface);
@@ -40,6 +42,7 @@
       border-bottom: 1px solid var(--border-color);
       text-align: center;
       border-radius: 0;
+      display: none;
     }
     .header h1 {
       font-size: 2rem;
@@ -53,7 +56,9 @@
     .content {
       padding: 2rem;
       overflow-y: auto;
-      height: calc(100vh - 180px);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
     }
     .process-name {
       background: #2c5aa0;
@@ -201,13 +206,14 @@
     }
     .info-stats {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0.75rem 2rem;
-      background: #f8f9fa;
-      border-bottom: 1px solid var(--border-color);
-      flex-wrap: wrap;
-      gap: 1.5rem;
+      flex-direction: column;
+      padding: 1rem 1.5rem;
+      background: linear-gradient(135deg, #f5f7ff 0%, #ede7f6 100%);
+      border: 2px solid #667eea;
+      gap: 0.75rem;
+      border-radius: 12px;
+      margin-bottom: 1rem;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.15);
     }
     .stat-item {
       display: flex;
@@ -255,6 +261,27 @@
     }
     .export-csv-btn:hover {
       background: #157347;
+    }
+    .process-switch-btn {
+      padding: 0.2rem 0.5rem;
+      background: white;
+      color: var(--primary);
+      border: 1px solid var(--primary);
+      border-radius: 3px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .process-switch-btn:hover {
+      background: #e8eef7;
+      color: var(--primary);
+    }
+    .process-switch-btn.active {
+      background: var(--primary);
+      color: white;
+      font-weight: 700;
     }
     .button-group {
       display: flex;
@@ -325,38 +352,48 @@
 </head>
 <body>
   <div class="container">
-    <div class="header">
-      <h1>🔍 Process Information</h1>
-      <p>Detailed information extracted from ProcessChecker.com</p>
-    </div>
-    
     <!-- Statistics Bar -->
-    <div class="info-stats">
-      <div class="stat-item">
-        <span class="stat-label">Total Paths:</span>
-        <span class="stat-value" id="totalPaths">-</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-label">Found on Page:</span>
-        <span class="stat-value" id="foundOnPage">-</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-label">Search Time:</span>
-        <span class="stat-value" id="searchTime">-</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-label">Date:</span>
-        <span class="stat-value" id="searchDate">-</span>
-      </div>
-      <div class="button-group">
-        <button class="export-csv-btn" onclick="exportToCSV()">📊 Export CSV</button>
-        <button class="search-again-btn" onclick="goBackToSearch()">🔍 Search Another</button>
-      </div>
-    </div>
-    
     <div class="content">
-      <div class="process-name" id="processName">
-        Loading...
+      <div style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e0e0e0;">
+        <h1 style="font-size: 1.8rem; margin-bottom: 0.25rem; color: #1565c0;">🔍 Process Information</h1>
+        <p style="color: #6c757d; font-size: 0.95rem;">Detailed information extracted from ProcessChecker.com</p>
+      </div>
+
+      <div id="navigationRow" style="background: #1e3a8a; border-bottom: 2px solid #1e3a8a; padding: 0.75rem 1rem; display: none; margin-bottom: 1rem; border-radius: 10px;">
+        <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+          <span style="color: #ffffff; font-weight: 700; font-size: 0.9rem; white-space: nowrap;">🔄 Switch to see other results</span>
+          <div id="processButtons" style="display: flex; gap: 0.5rem; flex-wrap: wrap; overflow-x: auto;"></div>
+        </div>
+      </div>
+    
+      <div class="info-stats">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 2rem;">
+          <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <span style="font-weight: 700; color: #667eea; font-size: 1.4rem;">Results for <span id="resultsForProcessName" style="color: #764ba2; font-weight: 700;">-</span></span>
+            <div style="display: flex; gap: 2rem; flex-wrap: wrap; align-items: center;">
+              <div class="stat-item">
+                <span class="stat-label">Total Paths:</span>
+                <span class="stat-value" id="totalPaths">-</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Found on Page:</span>
+                <span class="stat-value" id="foundOnPage">-</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Search Time:</span>
+                <span class="stat-value" id="searchTime">-</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Date:</span>
+                <span class="stat-value" id="searchDate">-</span>
+              </div>
+            </div>
+          </div>
+          <div class="button-group">
+            <button class="export-csv-btn" onclick="exportToCSV()">📊 Export CSV</button>
+            <button class="search-again-btn" onclick="goBackToSearch()">🔍 Search Another</button>
+          </div>
+        </div>
       </div>
       
       <div class="table-wrapper">
@@ -378,41 +415,140 @@
   </div>
 
   <script>
-    // Get data from URL parameters
-    function getResultData() {
+    let currentResult = null;
+
+    // Fetch data from server API
+    async function getResultData() {
       const params = new URLSearchParams(window.location.search);
+      const processName = params.get('name') || 'Unknown Process';
       
-      return {
-        processName: params.get('name') || 'Unknown Process',
-        data: JSON.parse(params.get('data') || '[]'),
-        url: params.get('url') || '#',
-        page: params.get('page') || 'Unknown',
-        searchTime: params.get('searchTime') || '-',
-        searchDate: params.get('searchDate') || '-',
-        totalPaths: params.get('totalPaths') || '0'
-      };
+      try {
+        const response = await fetch(`http://localhost:3000/api/result/${encodeURIComponent(processName)}`);
+        const data = await response.json();
+        
+        if (data.error) {
+          console.log('Result not found:', data.error);
+          return {
+            processName: processName,
+            data: [],
+            url: '#',
+            page: 'Unknown',
+            searchTime: '-',
+            searchDate: '-',
+            totalPaths: '0'
+          };
+        }
+        
+        return data;
+      } catch (error) {
+        console.error('Error fetching result data:', error);
+        return {
+          processName: processName,
+          data: [],
+          url: '#',
+          page: 'Unknown',
+          searchTime: '-',
+          searchDate: '-',
+          totalPaths: '0'
+        };
+      }
     }
 
     // Display the data
-    function displayResults() {
-      const result = getResultData();
+    async function buildProcessNavigation() {
+      const params = new URLSearchParams(window.location.search);
+      const processesParam = params.get('processes');
+      const currentProcess = params.get('name') || 'Unknown';
       
-      document.getElementById('processName').textContent = result.processName;
+      if (!processesParam) return;
       
-      // Update statistics
-      document.getElementById('totalPaths').textContent = result.totalPaths;
-      document.getElementById('foundOnPage').textContent = result.page;
-      document.getElementById('searchTime').textContent = result.searchTime + 's';
-      document.getElementById('searchDate').textContent = result.searchDate;
+      try {
+        const processList = JSON.parse(processesParam);
+        
+        if (processList.length > 1) {
+          const navRow = document.getElementById('navigationRow');
+          const processButtons = document.getElementById('processButtons');
+          
+          processButtons.innerHTML = '';
+          
+          for (const processName of processList) {
+            const btn = document.createElement('button');
+            btn.className = 'process-switch-btn';
+            if (processName === currentProcess) {
+              btn.classList.add('active');
+            }
+            btn.title = `Click to view results for ${processName}`;
+            
+            // Fetch result to check if paths were found
+            try {
+              const response = await fetch(`http://localhost:3000/api/result/${encodeURIComponent(processName)}`);
+              const data = await response.json();
+              
+              if (data.error || !data.totalPaths || data.totalPaths === '0') {
+                // No results found - show X mark
+                btn.innerHTML = `${processName} <span style="color: #dc3545; font-weight: bold; margin-left: 4px;">✕</span>`;
+              } else {
+                // Results found - show checkmark
+                btn.innerHTML = `${processName} <span style="color: #198754; font-weight: bold; margin-left: 4px;">✓</span>`;
+              }
+            } catch (error) {
+              console.error(`Error checking results for ${processName}:`, error);
+              btn.innerHTML = `${processName} <span style="color: #6c757d; font-weight: bold; margin-left: 4px;">?</span>`;
+            }
+            
+            btn.onclick = async () => {
+              try {
+                // Fetch the result data from the server
+                const response = await fetch(`http://localhost:3000/api/result/${encodeURIComponent(processName)}`);
+                const data = await response.json();
+                
+                if (data.error) {
+                  alert(`Results for "${processName}" not available yet. Please wait a moment.`);
+                  return;
+                }
+                
+                // Rebuild URL with minimal parameters - data stays on server
+                const newParams = new URLSearchParams({
+                  name: processName,
+                  processes: processesParam
+                });
+                window.location.href = `${window.location.pathname}?${newParams.toString()}`;
+              } catch (error) {
+                alert(`Error loading results for "${processName}": ${error.message}`);
+              }
+            };
+            processButtons.appendChild(btn);
+          }
+          
+          navRow.style.display = 'block';
+        }
+      } catch (e) {
+        console.log('Could not parse process list:', e);
+      }
+    }
+
+    async function displayResults() {
+      const result = await getResultData();
       
-      // Clear the table body
-      const tbody = document.getElementById('dataTable');
-      tbody.innerHTML = '';
+      // Build process navigation buttons
+      await buildProcessNavigation();
+      
+      document.getElementById('resultsForProcessName').textContent = result.processName;
       
       // Check if it's a "not found" result
       const isNotFound = result.totalPaths === '0' || 
                         (result.data && result.data.length > 0 && 
                          result.data[0].filePath.toLowerCase().includes('not found'));
+      
+      // Update statistics - show "-" for certain fields if not found
+      document.getElementById('totalPaths').textContent = isNotFound ? '-' : result.totalPaths;
+      document.getElementById('foundOnPage').textContent = isNotFound ? '-' : result.page;
+      document.getElementById('searchTime').textContent = isNotFound ? '-' : (result.searchTime + 's');
+      document.getElementById('searchDate').textContent = result.searchDate;
+      
+      // Clear the table body
+      const tbody = document.getElementById('dataTable');
+      tbody.innerHTML = '';
       
       if (isNotFound) {
         // Show clean error message matching UI style
@@ -422,7 +558,7 @@
             <div style="font-size: 4rem; margin-bottom: 1.5rem;">🔍</div>
             <h2 style="color: #495057; margin-bottom: 1rem; font-size: 1.8rem;">Process Not Found</h2>
             <p style="color: #6c757d; font-size: 1rem; line-height: 1.6; max-width: 500px; margin: 0 auto;">
-              The process <strong style="color: #0d6efd;">"${result.processName}"</strong> was not found in the ProcessChecker database.
+              The process <strong style="color: #0d6efd;">"${result.processName}"</strong> was not found.
             </p>
           </td>
         `;
@@ -516,9 +652,9 @@
     }
 
     // Function to export data to CSV
-    function exportToCSV() {
+    async function exportToCSV() {
       try {
-        const result = getResultData();
+        const result = await getResultData();
         
         if (!result.data || result.data.length === 0) {
           alert('No data to export');

@@ -8,6 +8,9 @@ let browser = null;
 let context = null;
 let searchPage = null; // Keep reference to the original search page
 
+// Store all search results globally so they can be retrieved by any tab
+let searchResultsStorage = {};
+
 // Main search function - Creates its own isolated page
 async function performSearch(processName, browserContext) {
   let page = null;
@@ -25,7 +28,8 @@ async function performSearch(processName, browserContext) {
       const url = pageNum === 1 ? baseUrl : `${baseUrl}&page=${pageNum}`;
       
       console.log(`Checking page ${pageNum}...`);
-      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
+      // Use 'load' instead of 'domcontentloaded' and shorter timeout for faster checks
+      await page.goto(url, { waitUntil: 'load', timeout: 10000 }).catch(() => {});
 
       const links = await page.$$eval('a', els => 
         els.map(a => ({ 
@@ -208,7 +212,7 @@ async function performSearch(processName, browserContext) {
       const finalPageNum = targetPageInfo.pageNum;
       const finalUrl = finalPageNum === 1 ? baseUrl : `${baseUrl}&page=${finalPageNum}`;
       
-      await page.goto(finalUrl, { waitUntil: 'domcontentloaded' });
+      await page.goto(finalUrl, { waitUntil: 'load', timeout: 10000 }).catch(() => {});
 
       // Get all links again
       const links = await page.$$eval('a', els => 
@@ -238,7 +242,7 @@ async function performSearch(processName, browserContext) {
           await page.goto(matchedLink.href);
         }
         
-        await page.waitForLoadState('domcontentloaded', { timeout: 10000 });
+        await page.waitForLoadState('load', { timeout: 8000 }).catch(() => {});
 
         // Extract data from table
         console.log(`\nExtracting Process Details from table...`);
@@ -364,23 +368,30 @@ async function performSearch(processName, browserContext) {
 }
 
 // Helper function to display results on the search page itself
-async function displayResultsOnPage(page, result) {
+async function displayResultsOnPage(page, result, allProcessNames = []) {
   try {
     const totalPaths = (result.data && result.data.length) || 0;
     
-    // Build the URL with all necessary parameters
-    const params = new URLSearchParams({
-      name: result.processName,
-      data: JSON.stringify(result.data || []),
-      url: result.url || '#',
+    // Store result in global storage for tab switching
+    searchResultsStorage[result.processName] = {
+      processName: result.processName,
+      data: result.data || [],
       page: result.page || '0',
       searchTime: result.searchTime || '0',
       searchDate: new Date().toLocaleString(),
-      totalPaths: totalPaths.toString()
+      totalPaths: totalPaths.toString(),
+      url: result.url || '#'
+    };
+    
+    // Build minimal URL - just pass process name and process list
+    // All data is stored server-side and fetched via API
+    const params = new URLSearchParams({
+      name: result.processName,
+      processes: JSON.stringify(allProcessNames)
     });
     
-    const resultsPath = path.join(__dirname, 'ui', 'results.html');
-    const resultsUrl = `file:///${resultsPath.replace(/\\/g, '/')}?${params.toString()}`;
+    // Use HTTP URL instead of file:// to allow fetch API to work
+    const resultsUrl = `http://localhost:3000/results.html?${params.toString()}`;
     
     await page.goto(resultsUrl);
     console.log(`[${result.processName}] ✅ Displayed results on tab (${totalPaths} paths found)`);
@@ -390,6 +401,20 @@ async function displayResultsOnPage(page, result) {
 }
 
 const server = http.createServer((req, res) => {
+  // Handle GET request to retrieve a result by process name
+  if (req.method === 'GET' && req.url.startsWith('/api/result/')) {
+    const processName = decodeURIComponent(req.url.replace('/api/result/', ''));
+    const result = searchResultsStorage[processName];
+    
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    if (result) {
+      res.end(JSON.stringify(result));
+    } else {
+      res.end(JSON.stringify({ error: `Result for "${processName}" not found` }));
+    }
+    return;
+  }
+
   // Handle POST request for parallel search
   if (req.method === 'POST' && req.url === '/api/search-parallel') {
     let body = '';
@@ -407,23 +432,29 @@ const server = http.createServer((req, res) => {
         
         // Send immediate response to unblock the UI
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true, message: `Searching ${processes.length} process(es) in parallel. Results will open when all searches complete.` }));
+        res.end(JSON.stringify({ success: true, message: `Searching ${processes.length} process(es) in parallel. Results will display as each completes.` }));
 
-        // Run ALL searches in parallel simultaneously and WAIT for all to complete
+        // Run ALL searches in parallel simultaneously
+        // Display results IMMEDIATELY as each one completes (don't wait for all)
         const searchPromises = processes.map((processName) => 
-          performSearch(processName, context).catch(console.error)
+          performSearch(processName, context)
+            .then(result => {
+              // Display this result immediately as soon as it completes
+              if (result && result.browserPage && (result.success || result.error)) {
+                console.log(`✅ Displaying results immediately for ${processName}...`);
+                displayResultsOnPage(result.browserPage, result, processes);
+              }
+              return result;
+            })
+            .catch(console.error)
         );
 
-        // Wait for ALL searches to complete before opening ANY result tabs
-        Promise.all(searchPromises).then(results => {
-          console.log(`\n✅ All searches complete! Displaying results on tabs...`);
-          // Display results on each tab
-          results.forEach(result => {
-            if (result && result.browserPage && (result.success || result.error)) {
-              displayResultsOnPage(result.browserPage, result);
-            }
-          });
-        }).catch(console.error);
+        // Optionally log when all are done (but don't wait to display)
+        Promise.all(searchPromises)
+          .then(() => {
+            console.log(`\n✅ All searches complete!`);
+          })
+          .catch(console.error);
 
       } catch (error) {
         console.error(`[Server] ❌ Critical error in /api/search-parallel: ${error.message}`);
@@ -667,10 +698,13 @@ async function startApp() {
     // Launch Chrome browser with the search page
     browser = await chromium.launch({ 
       headless: false,
-      channel: 'chrome'
+      channel: 'chrome',
+      args: ['--start-maximized']
     });
     
-    context = await browser.newContext();
+    context = await browser.newContext({
+      viewport: null
+    });
     searchPage = await context.newPage();
     
     await searchPage.goto(`http://localhost:${PORT}/search.html`);
