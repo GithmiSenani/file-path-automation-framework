@@ -464,64 +464,88 @@
       
       try {
         const processList = JSON.parse(processesParam);
+        const navRow = document.getElementById('navigationRow');
+        const processButtons = document.getElementById('processButtons');
         
-        if (processList.length > 1) {
-          const navRow = document.getElementById('navigationRow');
-          const processButtons = document.getElementById('processButtons');
+        processButtons.innerHTML = '';
+        
+        for (const processName of processList) {
+          const btn = document.createElement('button');
+          btn.className = 'process-switch-btn';
+          if (processName === currentProcess) {
+            btn.classList.add('active');
+          }
+          btn.title = `Click to view results for ${processName}`;
           
-          processButtons.innerHTML = '';
+          // Initialize with loading state
+          btn.innerHTML = `${processName} <span style="color: #6c757d; font-weight: bold; margin-left: 4px;">⏳</span>`;
           
-          for (const processName of processList) {
-            const btn = document.createElement('button');
-            btn.className = 'process-switch-btn';
-            if (processName === currentProcess) {
-              btn.classList.add('active');
-            }
-            btn.title = `Click to view results for ${processName}`;
-            
-            // Fetch result to check if paths were found
+          // Fetch result to check if paths were found (with retry logic)
+          const checkResult = async (retries = 5) => {
             try {
               const response = await fetch(`http://localhost:3000/api/result/${encodeURIComponent(processName)}`);
               const data = await response.json();
               
-              if (data.error || !data.totalPaths || data.totalPaths === '0') {
-                // No results found - show X mark
-                btn.innerHTML = `${processName} <span style="color: #dc3545; font-weight: bold; margin-left: 4px;">✕</span>`;
-              } else {
+              if (data.error) {
+                // Result not ready yet, retry after delay
+                if (retries > 0) {
+                  setTimeout(() => checkResult(retries - 1), 500);
+                } else {
+                  // Failed after retries - assume not found
+                  btn.innerHTML = `${processName} <span style="color: #dc3545; font-weight: 900; font-size: 1.4em; margin-left: 6px; line-height: 1;">✕</span>`;
+                }
+                return;
+              }
+              
+              // Check if there's actual data (array with items or totalPaths > 0)
+              const hasData = (data.data && data.data.length > 0) || (data.totalPaths && parseInt(data.totalPaths) > 0);
+              
+              if (hasData) {
                 // Results found - show checkmark
-                btn.innerHTML = `${processName} <span style="color: #198754; font-weight: bold; margin-left: 4px;">✓</span>`;
+                btn.innerHTML = `${processName} <span style="color: #198754; font-weight: 900; font-size: 1.4em; margin-left: 6px; line-height: 1;">✓</span>`;
+              } else {
+                // No results found - show X mark
+                btn.innerHTML = `${processName} <span style="color: #dc3545; font-weight: 900; font-size: 1.4em; margin-left: 6px; line-height: 1;">✕</span>`;
               }
             } catch (error) {
               console.error(`Error checking results for ${processName}:`, error);
-              btn.innerHTML = `${processName} <span style="color: #6c757d; font-weight: bold; margin-left: 4px;">?</span>`;
-            }
-            
-            btn.onclick = async () => {
-              try {
-                // Fetch the result data from the server
-                const response = await fetch(`http://localhost:3000/api/result/${encodeURIComponent(processName)}`);
-                const data = await response.json();
-                
-                if (data.error) {
-                  alert(`Results for "${processName}" not available yet. Please wait a moment.`);
-                  return;
-                }
-                
-                // Rebuild URL with minimal parameters - data stays on server
-                const newParams = new URLSearchParams({
-                  name: processName,
-                  processes: processesParam
-                });
-                window.location.href = `${window.location.pathname}?${newParams.toString()}`;
-              } catch (error) {
-                alert(`Error loading results for "${processName}": ${error.message}`);
+              // Retry on network error
+              if (retries > 0) {
+                setTimeout(() => checkResult(retries - 1), 500);
+              } else {
+                btn.innerHTML = `${processName} <span style="color: #6c757d; font-weight: 900; font-size: 1.4em; margin-left: 6px; line-height: 1;">?</span>`;
               }
-            };
-            processButtons.appendChild(btn);
-          }
+            }
+          };
           
-          navRow.style.display = 'block';
+          checkResult();
+          
+          btn.onclick = async () => {
+            try {
+              // Fetch the result data from the server
+              const response = await fetch(`http://localhost:3000/api/result/${encodeURIComponent(processName)}`);
+              const data = await response.json();
+              
+              if (data.error) {
+                alert(`Results for "${processName}" not available yet. Please wait a moment.`);
+                return;
+              }
+              
+              // Rebuild URL with minimal parameters - data stays on server
+              const newParams = new URLSearchParams({
+                name: processName,
+                processes: processesParam
+              });
+              window.location.href = `${window.location.pathname}?${newParams.toString()}`;
+            } catch (error) {
+              alert(`Error loading results for "${processName}": ${error.message}`);
+            }
+          };
+          processButtons.appendChild(btn);
         }
+        
+        // Always show the navigation bar
+        navRow.style.display = 'block';
       } catch (e) {
         console.log('Could not parse process list:', e);
       }
